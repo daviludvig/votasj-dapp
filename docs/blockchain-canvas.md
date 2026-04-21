@@ -1,7 +1,12 @@
 # Blockchain Canvas — VotaSJ
 
 **Project:** VotaSJ — Digital Participatory Budgeting for São José/SC
-**Author:** Davi Ludvig Longen Machado (23100473)
+**Authors:**:
+
+- Davi Ludvig Longen Machado (23100473)
+- Lucas Furlanetto Pascoali (23204339)
+- Arthur Clasen de Melo (24100596)
+- Pedro Tesman ()
 **Course:** INE5458 — Blockchain and Cryptocurrency Technologies — UFSC 2026/1
 **Delivery:** PD1 (input for the PD2 white paper)
 

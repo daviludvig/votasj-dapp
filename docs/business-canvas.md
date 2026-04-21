@@ -1,7 +1,13 @@
 # Business Model Canvas — VotaSJ
 
 **Project:** VotaSJ — Digital Participatory Budgeting Platform for São José/SC
-**Author:** Davi Ludvig Longen Machado (23100473)
+**Authors:**:
+
+- Davi Ludvig Longen Machado (23100473)
+- Lucas Furlanetto Pascoali (23204339)
+- Arthur Clasen de Melo (24100596)
+- Pedro Tesman ()
+
 **Course:** INE5458 — Blockchain and Cryptocurrency Technologies — UFSC 2026/1
 **Delivery:** PD1
 
