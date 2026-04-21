@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Blocks direct pushes to protected branches. Activate with:
+#   git config core.hooksPath .githooks
+#
+# Protected branches land only via Pull Request. See CONTRIBUTING.md.
+
+set -euo pipefail
+
+protected_branches=("main")
+
+remote="${1:-}"
+_url="${2:-}"
+
+zero_sha="0000000000000000000000000000000000000000"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [[ "$local_sha" == "$zero_sha" ]] && continue  # branch deletion
+
+  remote_branch="${remote_ref#refs/heads/}"
+
+  for protected in "${protected_branches[@]}"; do
+    if [[ "$remote_branch" == "$protected" ]]; then
+      printf '\033[31m[pre-push] Refusing direct push to %s on %s.\033[0m\n' \
+        "$protected" "$remote" >&2
+      printf '[pre-push] Open a pull request: see CONTRIBUTING.md\n' >&2
+      exit 1
+    fi
+  done
+done
+
+exit 0
