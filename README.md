@@ -164,6 +164,10 @@ This sends two real transactions to Amoy and prints the deployed addresses. They
 
 ---
 
+## Contributing
+
+All changes land on `main` via pull request from a feature branch — no direct pushes. Commit conventions, branch naming, and how to apply GitHub branch-protection rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## MVP scope (PD1)
 
 - Single admin (City Hall) — the 3-of-5 multisig arrives in PD2.
