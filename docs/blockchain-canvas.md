@@ -6,7 +6,8 @@
 - Davi Ludvig Longen Machado (23100473)
 - Lucas Furlanetto Pascoali (23204339)
 - Arthur Clasen de Melo (24100596)
-- Pedro Tesman ()
+- Pedro Henrique Tesman Mansani da Silva (24103617)
+
 **Course:** INE5458 — Blockchain and Cryptocurrency Technologies — UFSC 2026/1
 **Delivery:** PD1 (input for the PD2 white paper)
 
