@@ -14,5 +14,6 @@ typechain-types/
 .DS_Store
 .idea/
 .vscode/
+.claude/
 *.log
 sources/
