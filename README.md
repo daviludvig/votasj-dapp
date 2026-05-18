@@ -8,9 +8,9 @@ A decentralized voting platform for the São José/SC participatory budget. Ever
 
 | PD | Weight | Artifact | Due | Status |
 | -- | ------ | -------- | --- | ------ |
-| PD1 | 80% Business Canvas + 20% Blockchain Canvas | [docs/business-canvas.md](docs/business-canvas.md), [docs/blockchain-canvas.md](docs/blockchain-canvas.md) | 2026-04-29 | drafted |
-| PD2 | Long white paper (≥ 8 pages, technical) + Short white paper (≤ 2 pages, business/user) | `docs/whitepaper-long.md`, `docs/whitepaper-short.md` | TBD | not started |
-| PD3 | Pitch deck (5 or 10 slides) + 10–15 min team video + MVP demo, uploaded as unlisted YouTube link | `docs/pitch-deck.pdf`, `frontend/` | TBD | not started |
+| PD1 | 80% Business Canvas + 20% Blockchain Canvas | [docs/pd1/business-canvas.md](docs/pd1/business-canvas.md), [docs/pd1/blockchain-canvas.md](docs/pd1/blockchain-canvas.md) | 2026-04-29 | drafted |
+| PD2 | Long white paper (≥ 8 pages, technical) + Short white paper (≤ 2 pages, business/user) | [docs/pd2/whitepaper-long/](docs/pd2/whitepaper-long/), [docs/pd2/whitepaper-short/](docs/pd2/whitepaper-short/) | 2026-05-20 | drafted |
+| PD3 | Pitch deck (5 or 10 slides) + 10–15 min team video + MVP demo, uploaded as unlisted YouTube link | [docs/pd3/](docs/pd3/), `frontend/` | TBD | planned |
 
 ### What each PD expects (derived from the course slides in [sources/](sources/))
 
@@ -26,7 +26,11 @@ contracts/         Smart contracts (Solidity 0.8.24)
   ParticipatoryBudget.sol   Voting cycle (open, propose, vote, tally)
 test/              Hardhat tests (ethers v6 + chai)
 scripts/           Deployment scripts
-docs/              Canvases, white papers, and diagrams
+docs/              Course deliverables, organized by PD
+  pd1/                      Business + Blockchain canvases
+  pd2/whitepaper-long/      Long technical white paper (markdown + LaTeX SBC)
+  pd2/whitepaper-short/     Short business/user white paper (markdown + LaTeX SBC)
+  pd3/                      (reserved for pitch deck + demo)
 frontend/          (reserved for PD3 MVP demo)
 sources/           Course slides (Canvas, White Paper, Pitch Deck lectures) — git-ignored
 ```
@@ -174,4 +178,4 @@ All changes land on `main` via pull request from a feature branch — no direct 
 - Plaintext voting (transparent) — zk-SNARK vote privacy arrives in PD2.
 - Simple-majority tally — alternative schemes (quadratic, per-region) arrive in PD3.
 
-These simplifications are intentional for the first delivery; the rationale and evolution roadmap are documented in [docs/blockchain-canvas.md](docs/blockchain-canvas.md) under _Points to verify_.
+These simplifications are intentional for the first delivery; the rationale and evolution roadmap are documented in [docs/pd1/blockchain-canvas.md](docs/pd1/blockchain-canvas.md) under _Points to verify_.

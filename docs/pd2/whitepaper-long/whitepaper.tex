@@ -1,0 +1,1017 @@
+% VotaSJ --- Long Technical White Paper
+% SBC LaTeX template (sbc-template.cls). See README.md in this folder
+% for how to obtain the class file from the SBC website.
+\documentclass[12pt]{article}
+
+\usepackage{sbc-template}
+\usepackage{graphicx,url}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{microtype}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue!60!black
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  captionpos=b,
+  showstringspaces=false
+}
+
+\sloppy
+
+\title{VotaSJ: A Blockchain-Anchored Participatory Budgeting Platform for S\~ao Jos\'e/SC}
+
+\author{Davi Ludvig Longen Machado\inst{1} \and
+        Lucas Furlanetto Pascoali\inst{1} \\
+        Arthur Clasen de Melo\inst{1} \and
+        Pedro Henrique Tesman Mansani da Silva\inst{1}}
+
+\address{Departamento de Inform\'atica e Estat\'{\i}stica (INE) \\
+  Universidade Federal de Santa Catarina (UFSC) \\
+  Florian\'opolis --- SC --- Brasil
+  \email{\{davi.ludvig,lucas.furlanetto,arthur.clasen,pedro.tesman\}@grad.ufsc.br}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Municipal participatory budgeting (PB) in Brazil suffers from three structural
+failures: turnout below 2\,\% of the eligible population, operational cost in
+the order of hundreds of thousands of reais per cycle, and a tally that the
+City Hall both runs and announces --- so every contested result ends in an
+unverifiable accusation of fraud. We propose VotaSJ, a permissioned-write,
+permissionless-read application on Polygon PoS that uses gov.br for
+eligibility, smart contracts for cycle state and tally, IPFS for proposal
+metadata, and an on-chain milestone log for execution accountability.
+Administration is held by a 3-of-5 multisig (City Hall \(\times\)3, UFSC,
+TCE-SC) and contract upgrades are gated by a 14-day timelock. This paper
+argues the narrow technical case for blockchain in this domain, details the
+contract design (implementation, 40-test Hardhat suite), reports gas
+measurements (\(\approx\)430k gas per full citizen flow), and discusses the
+threat model, LGPD posture, and migration path to a Semaphore-based vote-secrecy
+expansion. We do not claim that blockchain ``solves democracy''; we claim it
+is the right primitive for the narrow set of steps where operator honesty
+cannot be assumed.
+\end{abstract}
+
+%% Resumo intentionally omitted: VotaSJ project artifacts are English-only
+%% per the team's documented language policy.
+
+\section{Introduction and Executive Summary}
+\label{sec:intro}
+
+Brazilian municipal participatory budgeting (PB) has been around since the
+1990s, but in cities the size of S\~ao Jos\'e/SC it rarely works in
+practice. Turnout sits under 2\,\% of eligible voters, a single cycle costs
+the city hundreds of thousands of reais in logistics, and the City Hall
+both runs the count and announces the winner --- which means every
+contested result ends in an accusation of fraud that nobody can prove or
+disprove. The institution survives mostly as political theatre.
+
+VotaSJ replaces the parts of that institution where a public ledger
+genuinely helps --- the eligibility commitment, the vote, the tally, and
+the milestone log of how the winning proposal is executed --- and leaves
+everything else off-chain. Citizens authenticate with
+\texttt{gov.br}~\cite{govbrmanual}, the federal digital ID; the backend
+computes a salted credential hash and commits it to Polygon
+PoS~\cite{polygondocs} through a \texttt{VoterRegistry}; the
+\texttt{ParticipatoryBudget} cycle contract handles proposals, voting, and
+tally; an \texttt{ExecutionTracker} records contract signing, work start,
+milestones, and completion of the winning proposal, with IPFS-anchored
+evidence. Administration sits on a 3-of-5 Safe (City Hall $\times 3$, UFSC
+$\times 1$, TCE-SC $\times 1$), and any contract upgrade is gated by a
+14-day OpenZeppelin \texttt{TimelockController}~\cite{openzeppelin5}, so
+the rules cannot change inside an active cycle.
+
+Why blockchain at all? Because no single party in this system is trusted
+by all the others. Citizens distrust the City Hall to count its own vote;
+the opposition distrusts the incumbent; auditors distrust the speed of
+paper reconstruction. What the system has to produce is a count that
+nobody has to take on faith, and a public L2 with an external validator
+set produces that property without anyone in S\~ao Jos\'e having to be
+honest. Sections~\ref{sec:problem}--\ref{sec:why-bc} make that case;
+\ref{sec:arch}--\ref{sec:dataflow} describe the system;
+\ref{sec:security}--\ref{sec:scale} cover security, privacy and scale;
+\ref{sec:workflow}--\ref{sec:economics} report what it costs;
+\ref{sec:team}--\ref{sec:gtm} introduce the team and go-to-market plan;
+\ref{sec:roadmap}--\ref{sec:conclusion} close with roadmap, risks, and
+conclusion.
+
+What VotaSJ is \textbf{not}: an attempt to ``tokenize democracy'' or to
+replace deliberation with code. Citizens pay nothing. There is no fungible
+vote-token. Deliberation, mobilization, and assembly happen off-chain
+where they belong. The blockchain is just the record of who is allowed to
+vote, who voted for what, and what happened to the money --- the four
+things the institution currently cannot prove.
+
+\section{Problem Statement}
+\label{sec:problem}
+
+S\~ao Jos\'e/SC has approximately \textbf{180{,}000 eligible voters} and runs
+(irregularly) a participatory-budget process inherited from the Porto Alegre
+school of the early 1990s, framed legally by the \emph{Estatuto da
+Cidade}~\cite{estatutodacidade}. Field data from comparable mid-size Brazilian
+municipalities indicates:
+
+\begin{itemize}
+  \item \textbf{Turnout below 2\,\%} in the last three documented cycles ---
+        under 3{,}600 actual participants decide the allocation of tens of
+        millions of reais of investment-margin budget.
+  \item \textbf{Operational cost per cycle of BRL 300k--500k}, dominated by
+        physical assembly logistics, poll-worker payments, manual tallying,
+        and administrative reconciliation.
+  \item \textbf{A tally that takes \(\approx\)3 weeks} of paper reconstruction
+        after the last assembly closes, during which the legitimacy of the
+        result is essentially indefensible.
+  \item \textbf{No execution feedback loop}: even when a proposal wins,
+        citizens have no programmatic way to verify whether the committed
+        budget was actually executed against the winning project.
+\end{itemize}
+
+Three additional second-order effects compound the failure: (i)
+\textit{self-selection bias} because evening assemblies systematically
+exclude shift workers, parents of small children, and the geographically
+peripheral population; (ii) \textit{fraud asymmetry}, since the City Hall
+operates, counts, and announces the result; and (iii) \textit{bureaucratic
+opacity post-vote}, since the winning proposal disappears into the municipal
+financial system (SIG) after the cycle closes.
+
+\subsection{Why existing digital systems fail}
+\label{sec:digital-fail}
+
+Since roughly 2015 Brazilian municipalities have experimented with digital PB
+tools --- from off-the-shelf survey platforms (Decidim, Consul, SurveyMonkey)
+to in-house web portals integrated with municipal SSO. These deployments
+share four failure modes:
+
+\begin{itemize}
+  \item \textbf{Single-operator trust.} The City Hall owns the database, the
+        application server, and the announcement. A determined operator can
+        modify results without detectable trace.
+  \item \textbf{No public auditability.} Citizens get an HTML page; auditors
+        get a CSV upon request weeks later. Neither version is independently
+        verifiable against the original event stream because the event stream
+        is, in principle, a SQL table the operator can rewrite.
+  \item \textbf{No Sybil resistance.} Most deployments fall back to CPF
+        \(+\) email confirmation, which is not Sybil-resistant.
+  \item \textbf{No execution accountability.} None of the deployed systems
+        link the vote result back to budget execution.
+\end{itemize}
+
+VotaSJ does not claim that blockchain solves all four problems by default.
+It claims, more narrowly, that \textbf{blockchain solves the first two
+structurally}; that the third is solvable by anchoring identity to
+\texttt{gov.br}, an existing federal credential infrastructure the operator
+does not control; and that the fourth is solvable by reusing the same
+substrate that records the vote to record the milestone.
+
+\section{Why Blockchain (and Why That Is Not a Tautology)}
+\label{sec:why-bc}
+
+Before settling on a blockchain we considered three simpler alternatives:
+a normal web application backed by a relational database, the same setup
+with a cryptographic audit log on top (Merkle roots, signed receipts), and
+a PKI-only design where each voter holds a certificate and votes are
+detached signatures. Each one fixes part of the problem and leaves another
+part open.
+
+\subsection{Traditional web servers and relational databases}
+
+This is what every existing Brazilian deployment uses. Integrity depends
+entirely on operator honesty; the auditor has access only to what the
+operator chooses to expose. Adequate for \textit{non-political} civic
+systems; unfit for one whose entire value proposition is convincing a
+skeptical opposition that the count is honest.
+
+\subsection{Centralized DB with cryptographic audit log}
+
+The operator publishes Merkle roots of the event stream and citizens receive
+signed receipts. A meaningful improvement over §3.1, and the strongest
+non-blockchain candidate (the architecture behind Certificate Transparency).
+The auditor can prove \textit{inclusion} and \textit{exclusion} of a given
+receipt against the published root, but \textbf{cannot prove completeness}
+--- there may be additional events the operator chose not to commit. The
+``completeness'' property is exactly the one a political adversary will
+attack.
+
+\subsection{PKI-only systems}
+
+Every voter holds a certificate; votes are detached signatures. Per-vote
+integrity is excellent, but \textit{aggregation integrity} is nil --- the
+aggregator still decides what counts as the final tally. Operational reality
+also dooms it: governmental PKI rollout (e.g., ICP-Brasil) has been
+notoriously expensive and slow.
+
+\subsection{Public blockchain}
+
+Integrity is enforced by a consensus protocol on a validator set the
+operator does not control~\cite{wood2014yellowpaper}; auditability is
+trivial; completeness is by construction; live verification is continuous
+with \(\approx\)2\,s finality on Polygon PoS. A blockchain is the only
+candidate in this list where the integrity guarantee does not collapse if
+the operator becomes adversarial.
+
+\subsection{On-chain only where it matters}
+\label{sec:on-chain-only}
+
+\noindent\begin{tabular}{p{0.45\textwidth} c p{0.32\textwidth}}
+\toprule
+\textbf{Subproblem} & \textbf{On-chain?} & \textbf{Why} \\
+\midrule
+Proposal metadata (title, images) & no & IPFS; commit only the CID. \\
+Personal data (CPF, name, address) & no & LGPD~\cite{lgpd}; never on-chain. \\
+Proving eligibility & partial & \texttt{gov.br} proof, hash on-chain. \\
+Casting a vote & yes & Operator honesty cannot be assumed. \\
+Counting votes & yes & A \texttt{closeCycle()} on-chain is the only count nobody must trust. \\
+Recording the winner & yes & Same. \\
+Tracking budget execution & yes & The accountability loop the institution fails to close. \\
+Notifications, PDFs, charts & no & Standard off-chain web. \\
+\bottomrule
+\end{tabular}
+
+\section{System Architecture}
+\label{sec:arch}
+
+VotaSJ is a three-layer system. Only the on-chain layer is authoritative;
+the off-chain backbone is a best-effort cache and integration; the citizen
+layer is the UX and the audit surface.
+
+\begin{lstlisting}[caption={High-level architecture}]
++--------------------------------------------------------------+
+| L1 - Citizen layer                                           |
+|   * Progressive Web App (React + ethers v6)                  |
+|   * Assisted kiosks in CRAS / UPAs / public libraries        |
+|   * Public audit portal (read-only subgraph queries)         |
++--------------------------------------------------------------+
+| L2 - Off-chain backbone                                      |
+|   * Voter Registry DB (PostgreSQL, LGPD-controlled)          |
+|   * gov.br OIDC relay (Serpro federated identity)            |
+|   * IPFS pinning (proposal metadata)                         |
+|   * The Graph subgraph (public indexer)                      |
+|   * Chainlink Automation (cycle-closing keeper)              |
+|   * Notification worker (push/email/SMS - non-authoritative) |
++--------------------------------------------------------------+
+| L3 - On-chain substrate of record (Polygon PoS)              |
+|   * VoterRegistry.sol                                        |
+|   * ParticipatoryBudget.sol (cycle, propose, vote, close)    |
+|   * ExecutionTracker.sol (milestone commitments)             |
+|   * TimelockController + 3-of-5 Safe multisig                |
+|   * UUPS proxy pattern (upgradeable behind timelock)         |
++--------------------------------------------------------------+
+\end{lstlisting}
+
+\subsection{Why Polygon PoS, not Ethereum L1, not a private chain}
+
+Ethereum L1 is the natural conservative choice but at current gas prices it
+produces a per-vote cost in the order of USD 0.20--1.00, which over 50{,}000
+votes per cycle becomes prohibitive without buying additional security
+relative to a major L2. A private/permissioned chain (e.g., Hyperledger
+Fabric) fails the central test: the operator (City Hall) would also control
+the validator set --- the chain degenerates into the configuration ruled out
+in §3.2. A roll-your-own validator set (UFSC + TCE-SC + Public Prosecutor's
+Office running their own nodes) is plausible but requires significant
+institutional negotiation and is fragile against political reconfiguration;
+it is kept as a deliberate fallback. Polygon PoS gives us a public L2
+with \(\approx\)100 external validators, \(\approx\)2\,s finality, EVM
+equivalence, and per-tx fees in fractions of a cent~\cite{polygondocs}.
+
+\section{Smart Contract Design}
+\label{sec:contracts}
+
+VotaSJ splits the on-chain state into two contracts with deliberately
+narrow responsibilities --- a \texttt{VoterRegistry} and a
+\texttt{ParticipatoryBudget} cycle machine --- plus an
+\texttt{ExecutionTracker} for milestone commitments. The contract suite is
+exercised by a 40-test Hardhat suite~\cite{hardhatdocs}.
+
+\subsection{VoterRegistry}
+
+Maintains the set of eligible voter addresses keyed by a salted credential
+hash. Admin-only writes (\texttt{registerVoter}, \texttt{revokeVoter}),
+public reads. The registry is small (one address per citizen) and rarely
+changes.
+
+\subsection{ParticipatoryBudget}
+
+A finite-state cycle machine with three states (Pending, Open, Closed).
+Public writes are gated on \texttt{registry.isRegistered(msg.sender)};
+admin-only writes (\texttt{openCycle}) are gated on the multisig. The
+implementation is wrapped behind a UUPS proxy~\cite{openzeppelin5}.
+
+State transitions:
+
+\begin{lstlisting}
+Pending --openCycle()--> Open
+Open    --closeCycle() after closesAt--> Closed
+Closed  --openCycle()--> Open  (next cycle)
+\end{lstlisting}
+
+Three invariants are enforced at the contract level and exercised in the
+test suite:
+
+\begin{enumerate}
+  \item Only registered voters can submit a proposal or cast a vote.
+  \item One vote per voter per cycle.
+  \item No cycle reopens once closed.
+\end{enumerate}
+
+Tally is deterministic: \texttt{closeCycle()} iterates the proposals of the
+current cycle and emits \texttt{CycleClosed(cycleId, winningProposalId,
+winningVotes)}. There is no off-chain tally service to trust.
+
+\subsection{ExecutionTracker}
+
+Once a cycle closes with a winning proposal, the City Hall financial system
+(SIG) consumes the on-chain event via a webhook and triggers the off-chain
+execution flow. As budget is committed and disbursed, milestone commitments
+are written back via \texttt{ExecutionTracker.recordMilestone(proposalId,
+milestoneId, cidEvidence)} by a multisig-controlled relayer, with
+IPFS-anchored evidence (invoices, photographs, contract scans). This is the
+\textit{accountability loop} that the existing institution fails to close.
+
+\subsection{Storage layout and gas economy}
+
+\noindent The packing decisions are deliberate: \texttt{opensAt} and
+\texttt{closesAt} are \texttt{uint64} (sufficient until year 292277026596),
+letting the EVM pack them into a single storage slot, while larger fields
+land in their own slots. Empirical gas measurements from the Hardhat test
+suite indicate roughly \(\approx\)430{,}000 gas for a full citizen flow
+(register \(+\) submit \(+\) vote \(+\) read). At a
+Polygon gas price of 30\,gwei and a MATIC price of \(\approx\)USD 0.40,
+the per-citizen-per-cycle cost lands at \(\approx\)USD 0.005 --- three
+orders of magnitude below the existing process cost.
+
+\subsection{Events as the indexing surface}
+
+We design events as a first-class API, not a debugging afterthought:
+\texttt{CycleOpened}, \texttt{ProposalSubmitted}, \texttt{VoteCast},
+\texttt{CycleClosed}. The public subgraph~\cite{thegraphdocs} is built
+strictly from these events; the audit portal queries the subgraph. Citizens,
+journalists, TCE-SC, and the Public Prosecutor's Office consume the same
+surface --- no one gets a privileged audit channel because no one needs one.
+
+\subsection{Upgradeability (UUPS + Timelock)}
+
+The production deployment wraps \texttt{ParticipatoryBudget} behind a UUPS
+proxy. The implementation contract is the only target of \texttt{upgradeTo},
+which is restricted to the multisig and gated by a 14-day
+\texttt{TimelockController}~\cite{openzeppelin5}. UUPS over Transparent
+Proxy reduces per-call gas overhead by \(\approx\)2{,}000\,gas; the 14-day
+timelock is calibrated to be longer than the critical voting interval. A
+second guardrail is enforced at the application level: \texttt{openCycle()}
+reverts if a pending upgrade is queued. The combination makes
+``rewrite-the-tally-rules-during-the-vote'' a strict impossibility under
+the multisig threat model.
+
+\subsection{Implementation notes for the next developer}
+
+This subsection collects the design decisions that are not obvious from
+the contract source. We document them here because each is a place where
+a future maintainer is likely to second-guess us.
+
+\begin{itemize}
+  \item \textbf{Revert error strings follow a \texttt{"Contract: reason"}
+        convention} (\texttt{"Budget: not admin"},
+        \texttt{"Budget: cycle not open"}, \texttt{"Registry: zero
+        address"}). The frontend pattern-matches on the prefix to route
+        errors to the right UI surface; renaming a contract changes the
+        prefix and is a backward-incompatible UI change.
+  \item \textbf{\texttt{opensAt} and \texttt{closesAt} are
+        \texttt{uint64}} (sufficient through year 292277026596) so they
+        pack into a single storage slot with \texttt{status} and
+        \texttt{proposalCount}. Using \texttt{uint256} everywhere would
+        cost an extra slot per cycle and \(\approx\)3{,}000\,gas per
+        \texttt{openCycle} for no practical benefit.
+  \item \textbf{The \texttt{VoterRegistry} reference is
+        \texttt{immutable}} in \texttt{ParticipatoryBudget}. The registry
+        address is fixed at construction; rebinding to a different
+        registry would require redeploying the budget contract and
+        migrating cycle history. This is deliberate: a swappable registry
+        is a larger attack surface than a redeployment is a maintenance
+        cost.
+  \item \textbf{Single active cycle invariant.} \texttt{openCycle}
+        requires the previous cycle to be \texttt{Closed}. Multi-cycle
+        parallelism (one per administrative region) is a roadmap item.
+  \item \textbf{\texttt{closeCycle} iterates linearly} over
+        \texttt{proposalCount} to find the winner. We bound
+        \texttt{proposalCount} at 500 per cycle; above that the close
+        transaction approaches Polygon's 30M block gas limit. For larger
+        deployments, the tally moves to an off-chain ZK rollup with a
+        single on-chain verification --- that work is scoped but not yet
+        built.
+  \item \textbf{Vote receipts are events, not return values.} Callers
+        reconstruct receipts from the \texttt{VoteCast} event, which lets
+        the subgraph be the single source of truth for ``did my vote land''.
+  \item \textbf{No comments, ratings, or rich proposal interaction on-chain.}
+        Anything that could carry personal data, opinion text, or
+        moderation surface stays in IPFS or in the off-chain backend; the
+        contract knows only proposal IDs, vote counts, and milestone hashes.
+\end{itemize}
+
+\section{Identity Verification Flow}
+\label{sec:identity}
+
+VotaSJ does not authenticate citizens directly. It delegates to
+\texttt{gov.br}~\cite{govbrmanual}, the Brazilian federal OIDC identity
+provider operated by Serpro:
+
+\begin{enumerate}
+  \item The citizen opens the VotaSJ PWA and clicks ``Register to vote''.
+  \item The PWA redirects to gov.br with
+        \texttt{scope=openid profile govbr\_confianca\_alto}.
+  \item gov.br returns a signed assertion containing the citizen's CPF and
+        confidence level.
+  \item The backend computes \texttt{credentialHash =
+        keccak256(cpf || municipality\_code || cycle\_salt || pepper)}, where
+        \texttt{pepper} is a server-side secret rotated every cycle. The
+        CPF never leaves the boundary; only the hash does.
+  \item The backend asks the citizen to bind a wallet address (in-app
+        ERC-4337~\cite{eip4337} smart-account, or external).
+  \item The wallet \(\leftrightarrow\) \texttt{credentialHash} binding is
+        committed via \texttt{VoterRegistry.registerVoter} from the multisig.
+  \item From this point, the citizen votes from the wallet. The chain knows
+        nothing about the CPF.
+\end{enumerate}
+
+The pepper-and-salt construction means the same CPF produces a different
+\texttt{credentialHash} each cycle, which prevents long-term linkability of
+a voter across cycles by anyone who later obtains the database. The pepper
+is held by the City Hall under multisig escrow; it is never required to be
+known publicly to verify the integrity of the count.
+
+\textbf{Trust assumption.} We assume gov.br is honest about the identities
+it asserts. This is the same assumption every federal service makes; we do
+not improve it, but we also do not weaken it. Mitigation against a gov.br
+compromise is institutional, not cryptographic --- a credential-hash anomaly
+(e.g., a sudden burst of registrations from a single IP block) is detectable
+by the auditor multisig and triggers a pause.
+
+\section{Multisig Governance}
+\label{sec:governance}
+
+Administrative authority is held by a \textbf{3-of-5 Gnosis Safe}:
+
+\begin{center}
+\begin{tabular}{l l}
+\toprule
+\textbf{Signer} & \textbf{Role} \\
+\midrule
+City Hall \#1 (Planning Secretariat) & Executive \\
+City Hall \#2 (Ombudsman)            & Internal control \\
+City Hall \#3 (Legal Department)     & Procedural validity \\
+UFSC INE / Blockchain Lab           & Academic auditor \\
+TCE-SC (State Court of Audit)        & Institutional auditor \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The choice is deliberate. A pure City Hall multisig would not solve the
+political-asymmetry problem of §\ref{sec:problem}. A purely institutional
+multisig would make routine operations slow and politically fraught. The
+3-of-5 with three internal and two external signers, threshold 3, encodes:
+
+\begin{itemize}
+  \item The City Hall \textbf{cannot} unilaterally open, close, or modify a
+        cycle (needs at least one external signer).
+  \item The City Hall \textbf{can} still run routine operations (3 internal
+        signatures) when no auditor objects.
+  \item Any single external signer can veto by withholding their signature.
+\end{itemize}
+
+The Safe is itself wrapped by an OpenZeppelin
+\texttt{TimelockController}~\cite{openzeppelin5} for any operation that
+changes contract code, role assignments, or the signer set. Routine cycle
+operations are not timelocked --- they happen at the speed of multisig
+coordination.
+
+\section{Data Flow and Processing}
+\label{sec:dataflow}
+
+End-to-end, the lifecycle of a single vote:
+
+\begin{enumerate}
+  \item Citizen authenticates with gov.br~\cite{govbrmanual}.
+  \item Backend issues \texttt{credentialHash}; multisig calls
+        \texttt{VoterRegistry.registerVoter}.
+  \item Citizen browses proposals; metadata loaded from IPFS, addressed by
+        the on-chain CID.
+  \item Citizen calls \texttt{ParticipatoryBudget.vote(proposalId)} via an
+        ERC-4337~\cite{eip4337} paymaster funded by the City Hall --- the
+        citizen pays no gas.
+  \item Polygon validators include the transaction; finality in \(\approx\)2\,s.
+  \item The subgraph indexer~\cite{thegraphdocs} ingests the
+        \texttt{VoteCast} event.
+  \item The public audit portal updates the per-proposal count in real time.
+  \item After \texttt{closesAt}, Chainlink
+        Automation~\cite{chainlinkautomation} calls \texttt{closeCycle()};
+        tally is deterministic.
+  \item The winning proposal is read by the City Hall's SIG via webhook.
+  \item As execution progresses, milestones are committed to
+        \texttt{ExecutionTracker}.
+\end{enumerate}
+
+The citizen sees a normal mobile UX; the auditor sees a public event log;
+the City Hall sees a SIG integration. Nobody is forced to interact with the
+blockchain directly except as the system-of-record.
+
+\section{Security Model and Threat Analysis}
+\label{sec:security}
+
+\subsection{Threat actors and assets}
+
+\begin{center}
+\begin{tabular}{l p{0.32\textwidth} p{0.28\textwidth}}
+\toprule
+\textbf{Actor} & \textbf{Capability} & \textbf{Asset at risk} \\
+\midrule
+Adversarial City Hall & 3/5 signers, runs backend & Tally outcome \\
+External attacker & Internet, backend compromise & Voter Registry, gas budget \\
+Vote buyer & Money, social pressure & Vote secrecy \\
+Sybil attacker & Multiple CPFs & Vote weight \\
+Polygon validator collusion & \(\geq\)2/3 validators & Liveness, finality \\
+Smart-contract bug & --- & Cycle integrity \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Sybil resistance}
+
+The chain itself does not provide Sybil resistance. We obtain it externally
+via gov.br: each CPF produces only one \texttt{credentialHash} per cycle, and
+each \texttt{credentialHash} is bound to at most one address by the registry.
+The remaining vector --- one human, multiple CPFs --- requires either a
+stolen identity (separately a crime, detectable by gov.br's anti-fraud
+telemetry) or a corrupted gov.br assertion (federal-level compromise, out of
+scope). We explicitly do \textbf{not} rely on captcha, phone-number
+verification, or email confirmation for Sybil resistance --- none of those
+are Sybil-resistant at scale.
+
+\subsection{Admin abuse resistance}
+
+Three layers: (1) critical state changes require 3-of-5 signatures including
+\(\geq\)1 external signer; (2) critical \emph{rule} changes additionally
+require a 14-day timelock; (3) \texttt{openCycle} reverts if any contract
+upgrade is pending --- closing the loophole of ``upgrade now, execute against
+the new rules immediately''.
+
+\subsection{Censorship resistance}
+
+The contract is deployed on a public L2 with \(\approx\)100 external
+validators. The City Hall cannot unilaterally take VotaSJ offline; doing so
+would require either shutting down Polygon (which they do not control) or
+pushing a contract upgrade to disable voting (timelocked, multisig-gated,
+publicly visible).
+
+\subsection{Smart-contract attack surface}
+
+We treat the smart contract as the single highest-value target:
+
+\begin{itemize}
+  \item External audit (OpenZeppelin or Hacken) before every major release,
+        budgeted at BRL 40k--80k per audit.
+  \item Reentrancy protection via \texttt{ReentrancyGuard}~\cite{openzeppelin5}
+        on any state-mutating function that touches an external contract.
+  \item Integer overflow safety automatic in Solidity \(\geq\)0.8.
+  \item Pausable escape hatch wired to the multisig.
+  \item No \texttt{delegatecall} outside the UUPS proxy slot.
+  \item Slither + Mythril static analysis in CI on every PR.
+\end{itemize}
+
+\subsection{Emergency procedure}
+
+If the multisig detects an active attack (Sybil wave, smart-contract bug,
+Polygon-level reorg): (1) any 3-of-5 signers call \texttt{pause()}; (2) the
+Public Prosecutor's Office and the citizenry are notified via the public
+portal banner; (3) diagnosis is off-chain; the cycle is closed and re-opened
+with new parameters via multisig + timelock, or allowed to expire and its
+result discarded with public, signed justification.
+
+\section{Privacy and LGPD Compliance}
+\label{sec:privacy}
+
+LGPD~\cite{lgpd} is binding on the City Hall as data controller. VotaSJ's
+posture:
+
+\begin{itemize}
+  \item \textbf{No personal data on-chain.} Ever. CPF, full name, address,
+        phone, email --- all live in the off-chain Voter Registry DB.
+  \item \textbf{Only credential hashes on-chain.} One-way function;
+        unrecoverable without the per-cycle pepper.
+  \item \textbf{Per-cycle pepper rotation.} Long-term linkability across
+        cycles is prevented at the chain level.
+  \item \textbf{Right-to-be-forgotten (LGPD Art. 18).} The on-chain
+        \texttt{credentialHash} cannot be deleted but, because it is a
+        one-way function of a CPF the system no longer holds, the on-chain
+        residue is, in our reading, non-identifying. This interpretation
+        has not yet been confirmed by the ANPD for our specific deployment.
+  \item \textbf{DPO and Data Processing Agreement.} The City Hall's appointed
+        DPO co-signs the LGPD impact assessment.
+\end{itemize}
+
+\subsection{Future zk-proof eligibility (Semaphore expansion)}
+\label{sec:zk}
+
+The current registry-based design exposes one cryptographic linkage that
+the next iteration breaks: an external observer who controls the Voter
+Registry DB and observes a \texttt{VoteCast} event can correlate the wallet
+address with the citizen. This is not a leak to the \emph{public} (the
+wallet is pseudonymous) but it is one to the \emph{City Hall}. The next
+iteration replaces the direct \texttt{registry.isRegistered(msg.sender)}
+check with a Semaphore-style group-membership
+zk-proof~\cite{semaphoredocs,semaphoregithub}:
+
+\begin{itemize}
+  \item The eligible cohort is committed as a Merkle root of credential
+        hashes (one root per cycle).
+  \item The citizen generates a zk-SNARK proving ``I know a leaf in this
+        tree and I have not voted before'' without revealing which leaf.
+  \item A nullifier deterministic in \((\texttt{credentialHash},
+        \texttt{cycleId})\) is published on-chain to enforce
+        one-vote-per-citizen without linkability to the registry.
+\end{itemize}
+
+Benchmarks of comparable Semaphore-on-Polygon deployments suggest a per-vote
+zk-proof generation of \(\approx\)3--5\,s on a mid-range mobile device and an
+on-chain verification cost of \(\approx\)250k\,gas, still within the per-vote
+economic envelope. The zk migration is scheduled for the second annual
+cycle.
+
+\section{Scalability, Performance, and Infrastructure}
+\label{sec:scale}
+
+\subsection{Throughput envelope}
+
+Polygon PoS sustains \(\approx\)65\,TPS of complex EVM transactions and
+\(\approx\)1--2\,kTPS of simple ones, with finality in the \(\approx\)2\,s
+range~\cite{polygondocs}. A peak voting day under the VotaSJ cycle profile
+(\(\approx\)20{,}000 citizens voting in the last 48\,h of a 14-day cycle)
+implies a peak sustained load of \(\approx\)0.1\,TPS --- three orders of
+magnitude below the chain's capacity.
+
+\subsection{Gas-cost considerations}
+
+\noindent\begin{tabular}{l r}
+\toprule
+\textbf{Operation} & \textbf{Gas (approx.)} \\
+\midrule
+\texttt{registerVoter} & 80k \\
+\texttt{submitProposal} & 120k \\
+\texttt{vote} & 95k \\
+\texttt{closeCycle} (per proposal) & 30k \\
+\bottomrule
+\end{tabular}
+
+At 30\,gwei and MATIC \(\approx\) USD 0.40, the per-vote cost is on the
+order of USD 0.001. Even with a 10\(\times\) safety margin and ERC-4337
+paymaster overhead~\cite{eip4337}, the per-cycle gas budget at 50{,}000
+voters fits comfortably under BRL 5{,}000.
+
+\subsection{closeCycle loop bound}
+
+The current \texttt{closeCycle} implementation iterates over all proposals.
+We bound the maximum number of proposals per cycle to 500. At
+\(500 \times 30\)k\,gas, the close transaction lands at \(\approx\)15M\,gas
+--- well under Polygon's 30M block gas limit. For larger municipalities, the
+next iteration will move the tally to an off-chain ZK-rollup with on-chain
+verification.
+
+\subsection{Infrastructure requirements}
+
+\begin{itemize}
+  \item Dedicated Polygon node (Erigon, 8 vCPU / 32\,GB RAM / 4\,TB SSD), with
+        a redundant hot standby.
+  \item IPFS pinning via a managed provider (Pinata or local Kubo cluster)
+        with 10\,GB of pinned content per cycle and 99.9\,\% availability SLA.
+  \item The Graph subgraph on the decentralized
+        network~\cite{thegraphdocs} with a secondary self-hosted indexer.
+  \item Chainlink Automation subscription, funded once per
+        cycle~\cite{chainlinkautomation}.
+\end{itemize}
+
+\subsection{Reliability and fault tolerance}
+
+Three independent failure scopes:
+
+\noindent\begin{tabular}{l p{0.27\textwidth} p{0.38\textwidth}}
+\toprule
+\textbf{Scope} & \textbf{Failure} & \textbf{Mitigation} \\
+\midrule
+Polygon & Reorg, multi-block halt & Multisig pause; cycle replay; ultimate fallback to Ethereum L1 redeployment (contracts are EVM-portable). \\
+Backend & gov.br outage, IPFS unpin, indexer lag & Retries; alternative IPFS gateway; subgraph re-sync. \\
+Operator & City Hall non-cooperation & The chain keeps running; 2 external signers; any RPC works. \\
+\bottomrule
+\end{tabular}
+
+The trust-critical path (cast vote, count vote, publish result) only depends
+on Polygon being live. Every other failure mode degrades UX, not integrity.
+
+\section{Operational Workflow}
+\label{sec:workflow}
+
+A canonical cycle, end-to-end:
+
+\begin{lstlisting}
+T-90  City Hall + UFSC + TCE-SC agree on cycle parameters.
+T-60  Multisig queues openCycle() in TimelockController (14-day delay).
+T-46  openCycle() executes. Cycle is Pending.
+T-30  Proposal-submission window opens.
+T-16  Proposal window closes; voting window opens.
+T-2   Last 48h: peak voting load.
+T0    closesAt reached. Chainlink Automation calls closeCycle().
+T+0   CycleClosed event emitted; portal shows winner.
+T+1   City Hall SIG receives webhook; budget execution kicks off.
+T+30/60/90  ExecutionTracker.recordMilestone() with IPFS evidence.
+T+365 Next cycle: GOTO T-90.
+\end{lstlisting}
+
+No human is required to perform a count, publish a result, or open a
+notification thread; all are produced as side-effects of on-chain events.
+
+\subsection{Operational runbook (who does what during a cycle)}
+
+The contract suite removes humans from the count, but the cycle still
+requires named operators with explicit handoffs. We document them here so
+the team running the first municipal pilot has a checklist rather than a
+vibe.
+
+\begin{center}\small
+\begin{tabular}{l l p{0.32\textwidth}}
+\toprule
+\textbf{Stage} & \textbf{Owner} & \textbf{Activity} \\
+\midrule
+Cycle config & Planning Secretariat & Drafts cycle params; circulates to UFSC + TCE-SC for review. \\
+Timelock queue & Secretariat + \(\geq\)1 external signer & Queues \texttt{openCycle} in the \texttt{TimelockController}. \\
+Mobilization & Comms + neighborhood associations & PWA, press, kiosks; trains kiosk attendants. \\
+Identity onboarding & Backend on-call & Operates the gov.br relay; monitors registration anomalies. \\
+Voting window & Backend on-call + multisig & Monitors gas, paymaster, Polygon block production. \\
+Close & Chainlink Automation & Calls \texttt{closeCycle()} at \texttt{closesAt}. \\
+Result publication & Frontend + comms & Portal updates from subgraph; press release triggered by \texttt{CycleClosed}. \\
+Execution tracking & Secretariat + multisig & \texttt{ExecutionTracker.recordMilestone()} with IPFS evidence at each stage. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The single biggest operational risk is \textbf{paymaster underfunding}
+during the last 48 hours of voting: at 30\,gwei and the gas profile of
+\S\ref{sec:scale}, the paymaster needs roughly BRL 2{,}000--3{,}000 of
+MATIC held in advance to cover 50k votes with a 5\(\times\) safety margin.
+We pre-fund the paymaster two weeks before the voting window and check
+the balance daily during the cycle.
+
+The second biggest risk is a \textbf{multisig signer being unreachable}
+in an emergency. The 3-of-5 threshold gives one signer of slack, but only
+one. The signer set has a documented escalation chain kept off-chain in
+the operations handbook.
+
+\section{Economic Feasibility}
+\label{sec:economics}
+
+\subsection{Cost reduction vs. traditional process}
+
+\noindent\begin{tabular}{l r r}
+\toprule
+\textbf{Item} & \textbf{Traditional} & \textbf{VotaSJ} \\
+\midrule
+Assembly logistics & 60--100k & 0 \\
+Poll workers, transport & 80--150k & 5--10k \\
+Manual tallying & 40--80k & 0 \\
+Administrative reconciliation & 30--50k & 0 \\
+Communications, mobilization & 50--80k & 40--60k \\
+External smart-contract audit (amortized) & --- & 40--80k \\
+Gas + infrastructure & --- & 5--10k \\
+\midrule
+\textbf{Total (BRL/cycle)} & \textbf{260--460k} & \textbf{90--160k} \\
+\bottomrule
+\end{tabular}
+
+Net savings: BRL 170k--300k per cycle, conservatively, before counting the
+political value of an unimpeachable result.
+
+\subsection{Revenue model}
+
+VotaSJ is a B2G SaaS sold to the City Hall: annual subscription BRL
+180--250k, per-cycle setup fee BRL 40k, implementation consulting for
+additional municipalities BRL 60--120k. Citizens never pay.
+
+\section{Team}
+\label{sec:team}
+
+VotaSJ was designed and implemented by four senior students of the
+\textbf{Departamento de Inform\'atica e Estat\'{\i}stica (INE)} at UFSC,
+enrolled in \textbf{INE5458 --- Blockchain and Cryptocurrency Technologies}
+(2026/1). Each author contributed across the full stack; the primary
+specializations are summarized below.
+
+\begin{center}
+\begin{tabular}{l p{0.55\textwidth}}
+\toprule
+\textbf{Member} & \textbf{Primary contribution} \\
+\midrule
+Davi Ludvig Longen Machado & Smart-contract architecture: cycle state machine, UUPS-proxy and multisig wiring, OpenZeppelin integration, Hardhat test harness. \\
+Lucas Furlanetto Pascoali & Smart-contract security: threat modeling, Slither/Mythril CI gates, gas profiling, reentrancy and access-control review. \\
+Arthur Clasen de Melo & Off-chain backbone: gov.br OIDC relay design, IPFS pinning topology, The Graph subgraph schema, Chainlink Automation upkeep. \\
+Pedro H.\ T.\ Mansani da Silva & Citizen-facing layer: PWA (React + ethers v6), ERC-4337-based wallet abstraction~\cite{eip4337}, accessibility and kiosk flows. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The team writes Solidity, TypeScript, and Python daily; all four members
+have prior Brazilian-civic-tech exposure through coursework, hackathons,
+and contributions to UFSC research projects. The work is positioned within
+the long-running research line of the \textbf{UFSC Blockchain Lab} at INE,
+which provides academic supervision and acts as the proposed external
+auditor signer of the production multisig. External smart-contract
+auditing for the first municipal pilot is contracted to a specialized firm
+(OpenZeppelin or Hacken) before any binding deployment --- the team
+explicitly does not self-audit security-critical code.
+
+\section{Go-to-Market and Marketing Strategy}
+\label{sec:gtm}
+
+VotaSJ is a B2G product. Its commercial cycle is slow, reference-driven,
+and institutionally gated --- not a consumer-acquisition campaign. The
+marketing plan reflects that reality and is built on top of the
+\emph{Channels} and \emph{Customer Relationships} blocks of the Business
+Model Canvas.
+
+\subsection{Sales motion (long-cycle B2G)}
+
+\begin{itemize}
+  \item \textbf{Anchor sale.} A municipal contract with S\~ao Jos\'e/SC
+        as the reference deployment. In Brazilian municipal procurement,
+        the first signature is the gating asset.
+  \item \textbf{Reference-based expansion.} From S\~ao Jos\'e, the next
+        addressable cluster is Greater Florian\'opolis (Palho\c{c}a,
+        Bigua\c{c}u, Florian\'opolis), followed by mid-size Santa Catarina
+        municipalities via \textbf{FECAM} (Federa\c{c}\~ao Catarinense de
+        Munic\'{\i}pios) and \textbf{ABM} (Associa\c{c}\~ao Brasileira de
+        Munic\'{\i}pios) channels.
+  \item \textbf{Institutional dual-use.} TCE-SC and the Public Prosecutor's
+        Office function simultaneously as auditor multisig signers \emph{and}
+        as the strongest endorsement signal a municipal buyer can receive.
+        Their participation in governance is itself the marketing message.
+\end{itemize}
+
+\subsection{Communication channels (mapped from the BMC)}
+
+\begin{center}\small
+\begin{tabular}{l l l}
+\toprule
+\textbf{Channel} & \textbf{Audience} & \textbf{Type} \\
+\midrule
+VotaSJ PWA \& audit portal & Citizens, journalists & Own digital \\
+The Graph subgraph + REST API & TCE-SC, MP, academia & Own M2M \\
+gov.br OIDC integration page & Citizens (onboarding) & Partner digital \\
+Assisted kiosks at CRAS/UPAs & Unbanked, elderly & Own physical \\
+Neighborhood associations & Grassroots citizens & Partner grassroots \\
+Regional press (NDTV/SC, ND) & All citizens & Partner media \\
+Conferences (SBSeg, SBRC, LADC) & Auditors, researchers & Own academic \\
+Open-source repository & Engineers, municipal IT & Own technical \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Content artifacts}
+
+The white-paper series itself is the spine of the strategy. Three
+artifacts, deliberately layered: (1) this \textbf{long technical paper}
+for engineers, CTOs, TCE-SC technical staff, and academic reviewers;
+(2) a \textbf{short business/user paper} (companion deliverable, leaflet
+style) for elected officials and citizens; and (3) a \textbf{pitch deck}
+and \textbf{demo video} for funding-oriented audiences. The artifacts are
+cross-referenced and versioned; updates are published on the open-source
+repository so that journalists and auditors can always cite a stable,
+dated source.
+
+\subsection{Pilot-driven activation}
+
+The first municipal cycle is the marketing event of the year. Kiosks are
+co-located in CRAS/UPAs/libraries --- venues citizens already attend for
+unrelated reasons --- and staffed by city-hall social-services personnel.
+The cycle produces three by-products of equal commercial value:
+(a) measured turnout (the only metric a competitor cannot fake);
+(b) photographic evidence of execution milestones (the substance of the
+``accountability loop'' value proposition); and (c) press-ready stories of
+named citizens whose votes turned into named municipal works.
+
+\section{Future Roadmap}
+\label{sec:roadmap}
+
+\noindent\begin{tabular}{l l p{0.45\textwidth}}
+\toprule
+\textbf{Phase} & \textbf{Target} & \textbf{Scope} \\
+\midrule
+Delivered & Contract suite + spec & \texttt{VoterRegistry}, \texttt{ParticipatoryBudget} and \texttt{ExecutionTracker} implemented, 40-test Hardhat suite, gas envelope characterized. \\
+2026-Q3 & Field pilot & Single cycle in one administrative region of S\~ao Jos\'e, 5--10k participants. \\
+2026-Q4 & Full S\~ao Jos\'e cycle & Citywide, \(\approx\)50k voters. \\
+2027 & Multi-municipality & Onboarding Palho\c{c}a, Bigua\c{c}u, Florian\'opolis. \\
+2027--2028 & zk-Semaphore default & Full vote-secrecy from City Hall, not just from the public~\cite{semaphoredocs}. \\
+2028+ & Polygon zkEVM migration & Preserves contract semantics; EVM-portable by design. \\
+\bottomrule
+\end{tabular}
+
+\section{Risks, Limitations, and Ethical Considerations}
+\label{sec:risks}
+
+What VotaSJ does \textbf{not} solve:
+
+\begin{itemize}
+  \item It does not produce deliberation. A digital ballot is not an assembly.
+  \item It does not solve the digital divide. Roughly 8\,\% of S\~ao Jos\'e
+        adults do not own a smartphone; assisted kiosks mitigate but do not
+        eliminate the exclusion.
+  \item It is not a coup-proof system. A determined adversary controlling
+        3-of-5 signers and willing to wait 14 days can rewrite the rules.
+  \item Polygon is a dependency. If Polygon ceases to be credible, migration
+        is non-trivial (though tractable, given EVM portability).
+  \item Legal feasibility of binding digital voting under the S\~ao Jos\'e
+        Organic Law is not formally established. The first field pilot is
+        consultative, not binding, pending an OAB-SC and municipal legal
+        opinion.
+\end{itemize}
+
+\noindent A few constraints we treat as non-negotiable. They are listed
+here because some of them rule out otherwise reasonable engineering
+shortcuts.
+
+\begin{itemize}
+  \item \textbf{Citizens pay nothing --- money, gas, or cognitive overhead.}
+        The day a citizen is asked to hold MATIC, install a wallet, or
+        understand the word ``blockchain'' to vote, the system loses its
+        constituency. The ERC-4337~\cite{eip4337} paymaster, the in-app
+        wallet abstraction, and the gov.br SSO are there to keep that
+        promise, not to be impressive.
+  \item \textbf{No tradeable representation of voting power.} No fungible
+        vote-token, no transferable SBT for voting rights, no anything
+        that could spawn a secondary market. Participation badges are
+        non-transferable (ERC-5192-style
+        SBT~\cite{eip5192,ohlhaver2022desoc}), per-cycle, wallet-bound.
+  \item \textbf{Pseudonymity, not anonymity --- and we say so.} Today's
+        votes link wallet $\leftrightarrow$ \texttt{credentialHash},
+        opaque to the public but visible to the City Hall via the
+        registry. The second annual cycle moves to Semaphore-based
+        anonymity. The paper does not claim a property the system does
+        not yet enforce.
+  \item \textbf{Source available, audit available.} Contracts, indexer
+        schema, and audit reports are public. No ``secret sauce''.
+  \item \textbf{No surveillance side-channel.} Push notifications,
+        analytics, and UX telemetry are opt-in and routed through the
+        off-chain backend; none of them can influence the count.
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Two things are true at once about Brazilian participatory budgeting: it
+works on paper (the law backs it, the budgets exist) and it fails in
+practice (almost nobody votes, nobody trusts the count). The failure is
+not a missing dashboard or a slow website --- it is the political fact
+that the City Hall both runs the process and announces the winner, with
+no neutral party in between. A blockchain does not fix democracy, but it
+does fix that particular asymmetry: a public L2 with an external
+validator set~\cite{polygondocs} produces a count that nobody in S\~ao
+Jos\'e has to take on faith.
+
+VotaSJ uses that property as narrowly as possible. Eligibility, votes,
+tally, and execution milestones live on-chain; everything else stays
+where it belongs --- \texttt{gov.br}~\cite{govbrmanual} for identity,
+IPFS for proposal content, a normal web backend for UX. The 3-of-5
+multisig with two external signers and the 14-day
+timelock~\cite{openzeppelin5} make it impossible for any single party,
+including the City Hall itself, to change the rules during an active
+vote. The per-cycle cost lands at roughly one-third of the existing
+process. The citizen never has to know what a blockchain is.
+
+What remains open is institutional, not technical: a legal opinion on
+the bindingness of digital voting under the S\~ao Jos\'e Organic Law,
+an ANPD position on hash-anchored eligibility, and the operational
+readiness of the City Hall as the anchor customer. The pilot is the
+next step; the contracts, the threat model, and the cost envelope are
+already in place.
+
+We started this work because every cycle in the existing system
+survives on the goodwill of organizers and the patience of a small
+constituency, and we have watched it lose legitimacy to fraud claims
+that nobody can rebut. The point of VotaSJ is to make the count
+something a citizen can check from the bus home --- and to make the
+City Hall something a citizen can hold to a deadline. The smallest
+amount of blockchain that fixes those two things is the contribution
+of this paper.
+
+\bibliographystyle{sbc}
+\bibliography{refs}
+
+\end{document}
