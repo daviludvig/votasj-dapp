@@ -1,0 +1,63 @@
+docs/pd2/whitepaper-short/sbc.bst
+  s_23780924baa380::t_964870211c191d 1-1103
+docs/pd2/whitepaper-long/Makefile
+  s_23780924baa380::t_964870211c191d 1-29
+docs/pd2/whitepaper-short/Makefile
+  s_23780924baa380::t_964870211c191d 1-24
+docs/pd2/whitepaper-long/refs.bib
+  s_23780924baa380::t_964870211c191d 1-119
+docs/pd2/whitepaper-long/whitepaper.tex
+  s_23780924baa380::t_964870211c191d 1-1017
+docs/pd1/blockchain-canvas.md
+  s_23780924baa380::t_964870211c191d 1-186
+docs/pd2/whitepaper-long/whitepaper.md
+  s_23780924baa380::t_964870211c191d 1-641
+docs/pd2/whitepaper-long/sbc.bst
+  s_23780924baa380::t_964870211c191d 1-1103
+docs/pd2/whitepaper-long/README.md
+  s_23780924baa380::t_15662d84ffe84e 29
+  s_23780924baa380::t_964870211c191d 1-28,30
+docs/pd3/01-development-plan.md
+  s_23780924baa380::t_964870211c191d 1-136
+docs/pd3/05-pitch-deck-outline.md
+  s_23780924baa380::t_964870211c191d 1-124
+docs/pd2/whitepaper-short/whitepaper.tex
+  s_23780924baa380::t_964870211c191d 1-173
+docs/pd3/03-demo-runbook.md
+  s_23780924baa380::t_964870211c191d 1-224
+docs/pd1/business-canvas.md
+  s_23780924baa380::t_964870211c191d 1-172
+README.md
+  s_23780924baa380::t_964870211c191d 11-13,29-33,181
+docs/pd3/06-video-script.md
+  s_23780924baa380::t_964870211c191d 1-135
+docs/pd3/README.md
+  s_23780924baa380::t_964870211c191d 1-49
+docs/pd2/whitepaper-short/whitepaper.md
+  s_23780924baa380::t_964870211c191d 1-61
+docs/pd2/whitepaper-short/README.md
+  s_23780924baa380::t_964870211c191d 1-28,30
+  s_23780924baa380::t_4dc998f99257e4 29
+docs/pd3/04-deliverables-checklist.md
+  s_23780924baa380::t_964870211c191d 1-90
+docs/pd2/whitepaper-short/refs.bib
+  s_23780924baa380::t_964870211c191d 1-31
+docs/pd3/02-gap-analysis.md
+  s_23780924baa380::t_964870211c191d 1-93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "8ce86e4c9191d7689f6c8db73b4ff2af7b36573d",
+  "prompts": {},
+  "sessions": {
+    "s_23780924baa380": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2459d649-73d8-4e2f-b317-e7f83bef95aa",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "dludvig_meli <davi.ludvig@mercadolivre.com>"
+    }
+  }
+}
