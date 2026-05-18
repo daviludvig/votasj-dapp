@@ -1,0 +1,173 @@
+% VotaSJ --- Short Business/User White Paper (~2 pages)
+% SBC LaTeX template (sbc-template.sty). See README.md for setup.
+\documentclass[12pt]{article}
+
+\usepackage{sbc-template}
+\usepackage{graphicx,url}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{microtype}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue!60!black
+}
+
+% Tighten lists and section spacing to fit 2 pages.
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.1em,topsep=2pt,itemsep=1pt,parsep=0pt}
+\setlength{\parskip}{2pt}
+\setlength{\parindent}{0pt}
+
+\sloppy
+
+\title{VotaSJ: Trust, Counted Live}
+
+\author{Davi Ludvig Longen Machado\inst{1} \and
+        Lucas Furlanetto Pascoali\inst{1} \\
+        Arthur Clasen de Melo\inst{1} \and
+        Pedro Henrique Tesman Mansani da Silva\inst{1}}
+
+\address{Departamento de Inform\'atica e Estat\'{\i}stica (INE) \\
+  Universidade Federal de Santa Catarina (UFSC) \\
+  Florian\'opolis --- SC --- Brasil
+  \email{\{davi.ludvig,lucas.furlanetto,arthur.clasen,pedro.tesman\}@grad.ufsc.br}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent VotaSJ is a blockchain-anchored participatory-budgeting platform
+for S\~ao Jos\'e/SC. Citizens authenticate with gov.br, vote from their
+phone, and audit the tally and the budget execution in real time --- without
+having to trust the City Hall to count its own vote. The platform replaces
+a BRL 300--500k physical process with a BRL 90--160k digital one, governed
+by a 3-of-5 multisig (City Hall, UFSC, TCE-SC) and a 14-day timelock on
+rule changes. This short paper makes the case to the institutional buyer
+(\S\ref{sec:investor}) and to the citizen (\S\ref{sec:citizen}).
+\end{abstract}
+
+%% Resumo intentionally omitted: VotaSJ artifacts are English-only.
+
+\section*{For the Investor and the Municipality}\label{sec:investor}
+
+\noindent\textbf{Problem.} Brazilian municipalities run participatory
+budgets that almost no one trusts. In S\~ao Jos\'e/SC: turnout below
+\textbf{2\,\%} of 180{,}000 voters (\(<\)3{,}600 people decide tens of
+millions of reais); operational cost of \textbf{BRL 300--500k/cycle}
+dominated by physical assemblies and \(\approx\)3-week manual tallying;
+and a tally run, counted, and announced by the City Hall itself, so every
+contested result ends in an unfalsifiable accusation of manipulation.
+
+\noindent\textbf{Solution.} A platform on Polygon PoS where citizens
+authenticate with \texttt{gov.br}, vote from their phone, and audit
+results live. The blockchain holds only what the City Hall must not be
+allowed to rewrite --- the eligibility commitment, the votes, the tally,
+and the budget-execution milestones. Personal data, proposal text, photos,
+and UX stay off-chain. Administration is a \textbf{3-of-5 multisig}
+(3 City Hall, 1 UFSC, 1 TCE-SC) and any contract change is gated by a
+\textbf{14-day timelock}, so the rules cannot move inside an active vote
+and the chain keeps running even if the City Hall stops cooperating.
+
+\noindent\textbf{Why now.} \texttt{gov.br} is mature (\(\approx\)150\,M
+citizens, free for municipal integration); Polygon per-vote gas is under
+USD 0.005; OpenZeppelin + Hardhat make audited deployments affordable;
+TCE-SC and MP press for auditable processes --- we arrive with the audit
+built in.
+
+\noindent\textbf{Market.}
+\begin{center}\small
+\begin{tabular}{l l r}
+\toprule
+\textbf{Segment} & \textbf{Scope} & \textbf{3y addressable} \\
+\midrule
+S\~ao Jos\'e/SC (anchor) & \(\approx\)180k voters & BRL 220k/yr \\
+Greater Florian\'opolis & 4 cities, \(\approx\)1.1M voters & BRL 0.8--1.2M/yr \\
+Santa Catarina state & \(\approx\)5.5M voters & BRL 4--6M/yr \\
+BR cities \(>\)50k inhab. & \(\approx\)340 cities, \(\approx\)85M voters & BRL 60M+/yr \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent TAM: \(>\)340 cities legally required to run participatory
+cycles. SAM: \(\approx\)80 with budgeted digital
+modernization. SOM (36\,mo): single-digit municipalities anchored on
+S\~ao Jos\'e.
+
+\noindent\textbf{B2G SaaS model.} Annual subscription BRL 180--250k/city;
+per-cycle setup BRL 40k; implementation consulting BRL 60--120k; white-label
+for professional councils. Citizens never pay. \emph{Unit economics:}
+physical process \textbf{BRL 300--500k/cycle}; VotaSJ \textbf{BRL
+90--160k/cycle, all-in}; net savings \textbf{BRL 170--300k/cycle}, before
+counting the political value of an unimpeachable result.
+
+\noindent\textbf{Traction.} Production-ready platform ---
+\texttt{VoterRegistry}, \texttt{ParticipatoryBudget}, and
+\texttt{ExecutionTracker} deployed under a UUPS proxy with a 3-of-5
+multisig and 14-day timelock, exercised by a 40-test Hardhat suite,
+CI-enforced lint/coverage gates, \(\approx\)430k\,gas measured for a full
+citizen flow. Institutional partners: UFSC Blockchain Lab, S\~ao Jos\'e
+Planning Secretariat, TCE-SC. Rollout: field pilot 2026-Q3, full S\~ao
+Jos\'e cycle 2026-Q4, multi-city expansion 2027.
+
+\noindent\textbf{Ask.} An institutional pilot agreement with S\~ao Jos\'e/SC
+and a seed envelope of \textbf{BRL 400--600k} for the first external
+smart-contract audit, gov.br integration certification, and the field-pilot
+cycle. First paid contract closes 12\,months after disbursement; payback is
+one cycle.
+
+\section*{For the Citizen}\label{sec:citizen}
+
+\noindent\textbf{Your vote, your eyes.} Today, when you participate in S\~ao
+Jos\'e's participatory budget --- if you participate --- you go to a
+night-time assembly, raise your hand, and trust that the City Hall counts
+correctly and executes what won. VotaSJ changes one thing: \textbf{you can
+stop trusting and start checking}.
+
+\noindent\textbf{What changes for you.}
+\begin{itemize}
+  \item \textbf{Vote from your phone, on your own schedule.} No more
+        assemblies you can't attend because of work, kids, or distance.
+  \item \textbf{See your vote land.} The moment you cast it, the public
+        tally updates. Refresh the page and watch it.
+  \item \textbf{Anyone audits the count.} Journalists, neighborhood
+        associations, TCE-SC, MP --- same data, same chain, same time.
+  \item \textbf{Follow execution.} You're notified when your winning
+        proposal moves to contract, work start, milestones, and finish,
+        with evidence you can check.
+  \item \textbf{Your data stays private.} CPF, name, address: none of it
+        goes on the blockchain. Only a one-way hash that proves
+        you're eligible, not who you are.
+\end{itemize}
+
+\noindent\textbf{Three steps.} (1) Sign in with \texttt{gov.br}
+--- the federal ID you already use. (2) Pick a proposal: browse what
+neighbors submitted, read the budget, vote once. (3) Watch the result and
+the execution: real-time tally and per-milestone updates. No need to know
+what a ``blockchain'' is. No crypto, no fee, no extra app.
+
+\noindent\textbf{Forquilhinhas, next cycle.} Maria, a cashier whose shift
+ends at 22:30, opens VotaSJ on the bus home and votes for the renovated
+daycare. Months later she is notified --- contract signed, work started,
+daycare reopens --- each step with verifiable photographic evidence.
+90\,seconds of participation; the institution actually delivered.
+
+\medskip
+\noindent\textbf{Trust, but verify --- and now you actually can.}
+
+\medskip
+{\footnotesize\noindent\textbf{Companion document and references.} A
+16-page technical white paper covers architecture, threat model, gas
+measurements, team, and roadmap. Sources: \emph{Estatuto da Cidade}
+(\url{https://www.planalto.gov.br/ccivil_03/leis/leis_2001/l10257.htm}),
+\emph{LGPD}
+(\url{https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm}),
+\emph{gov.br} (\url{https://acesso.gov.br/roteiro-tecnico/}),
+\emph{Polygon PoS} (\url{https://docs.polygon.technology/}).}
+
+\end{document}
