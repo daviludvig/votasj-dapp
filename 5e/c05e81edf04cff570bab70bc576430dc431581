@@ -1,0 +1,28 @@
+docs/pd2/whitepaper-long/whitepaper.md
+  s_148a8702d25b25::t_530a3653c216f5 380-392
+  s_148a8702d25b25::t_c23ce2e4f518d3 280-281
+  s_148a8702d25b25::t_3ee94ccc36c868 611-612
+  s_148a8702d25b25::t_8ff77ea637844c 417
+docs/pd2/whitepaper-long/whitepaper.tex
+  s_148a8702d25b25::t_a32f475b1738ce 614-661
+  s_148a8702d25b25::t_6fbdc5016fa23a 734
+  s_148a8702d25b25::t_4fbf1c574ed1d0 462-473
+  s_148a8702d25b25::t_072157f5822bbf 706-719
+  s_148a8702d25b25::t_2d8b86b190c179 1014-1035
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "5ec05e81edf04cff570bab70bc576430dc431581",
+  "prompts": {},
+  "sessions": {
+    "s_148a8702d25b25": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6b688313-fa93-4dbd-a9fa-35ab42fd3822",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "dludvig_meli <davi.ludvig@mercadolivre.com>"
+    }
+  }
+}
