@@ -277,6 +277,8 @@ The pepper-and-salt construction matters: a per-cycle pepper means that the same
 
 **Trust assumption.** We assume gov.br is honest about the identities it asserts. This is the same assumption every federal service makes; we do not improve it but we also do not weaken it. The mitigation against gov.br being compromised is institutional, not cryptographic: a credential-hash anomaly (e.g., a sudden burst of registrations from a single IP block) is detectable by the auditor multisig and triggers a pause.
 
+**Integration prerequisite.** Using gov.br as an OIDC provider requires the City Hall to sign a _Termo de Cooperação Técnica_ with Serpro and register VotaSJ as a public-interest service via the acesso.gov.br self-service portal. The process takes 30–60 days and requires an ANPD-compatible data-processing agreement as an attachment. The registration must specify the minimum `govbr_confianca` level required (we require `alto`, which mandates biometric or e-CPF confirmation); Serpro reviews and approves the level claim as part of the onboarding. This dependency is on the critical path of the Q3 pilot: the Termo must be initiated at least 90 days before the first voter-registration window opens.
+
 ---
 
 ## 8. Multisig Governance
@@ -375,6 +377,19 @@ If the multisig detects an active attack (e.g., a Sybil wave from a leaked peppe
 
 The procedure is deliberately heavy because _pausing a live municipal vote is itself a political act_ — making it easy would create a new abuse vector.
 
+### 10.7. Kiosk security
+
+The assisted-kiosk channel (§5.1, §16.4) introduces a distinct threat surface not present in the citizen-controlled-device flow.
+
+| Threat | Mitigation |
+| --- | --- |
+| Shoulder surfing | Kiosk terminals use privacy screens (side-angle filter). The gov.br authentication step is decoupled from the vote selection: the citizen authenticates (CPF + biometric) on a private sub-screen, then the terminal transitions to the proposal list. The final vote confirmation is a single tap — visible only to the voter at the terminal. |
+| Attendant coercion | Kiosk attendants see only whether a citizen has completed the session, not which proposal they voted for. The vote step is rendered after the attendant steps back by protocol (documented in the kiosk attendant handbook). Attendants are municipal social-services employees, not IT or political staff, and are subject to the same code of conduct as poll workers under Lei 9.709/1998. |
+| Session isolation | Each session is single-use: the terminal clears LocalStorage, the in-app wallet ephemeral key, and session cookies after the voter logs out or after a 60-second idle timeout. The ERC-4337 smart-account is created fresh per session; no private key material persists on the terminal between sessions. |
+| Device compromise | Kiosk terminals run a locked-down Chromium kiosk mode on MDM-enrolled hardware. The kiosk application is hash-verified at boot; any tampered binary blocks the session and alerts the on-call team. Network traffic from kiosk IPs is monitored; anomalies (e.g., multiple distinct wallet addresses from a single kiosk within one hour) trigger an alert. |
+
+Two residual limitations apply regardless of mitigations. First, coercion of an individual voter at a kiosk is as hard to prevent as coercion of a voter at home — the system cannot distinguish a freely cast vote from a coerced one. The institutional mitigation is that kiosks are in public CRAS/UPA/library premises with staff oversight and foot traffic, reducing the window for unobserved pressure. Second, a compromised MDM infrastructure could theoretically compromise all kiosk terminals simultaneously. This is out of scope for the smart-contract threat model; it is a risk the City Hall's IT security team must own.
+
 ---
 
 ## 11. Privacy and LGPD Compliance
@@ -399,7 +414,7 @@ The next iteration replaces the direct `registry.isRegistered(msg.sender)` check
 - The citizen generates a zk-SNARK proving "I know a leaf in this Merkle tree and I have not voted before" without revealing _which_ leaf.
 - A nullifier deterministic in `(credentialHash, cycleId)` is published on-chain to enforce one-vote-per-citizen without linkability to the registry.
 
-Benchmarks of comparable Semaphore-on-Polygon deployments suggest a per-vote zk-proof generation cost of ~3–5 s on a mid-range mobile device and an on-chain verification cost of ~250k gas, still well within the per-vote economic envelope of §6.2. The zk migration is scheduled for the second annual cycle.
+Published benchmarks for Semaphore v4 (the current release, which uses Groth16 proofs over the BN254 curve) report a per-proof generation time of ~2–4 s on a mid-range Android device and an on-chain Groth16 verification cost of ~250k gas on EVM chains — within the per-vote economic envelope of §6.2. We have not yet run a live Semaphore-on-Polygon integration test; the 250k gas figure and the mobile timing are from the Semaphore team's published benchmarks on testnet. A prototype integration test against Polygon Amoy is scoped for 2026-Q4, after the field pilot, to validate these numbers against our specific contract topology before committing to the migration. Until that prototype runs, the zk expansion path carries execution risk: if proof generation exceeds ~8 s on the kiosk device profile, the UX in the assisted-kiosk channel will require rethinking (e.g., server-side proof generation with a trust trade-off, or a different proving system). The zk migration is scheduled for the second annual cycle.
 
 ---
 
@@ -593,6 +608,8 @@ We are explicit about what VotaSJ does **not** solve:
 - **It is not a coup-proof system.** A determined adversary controlling 3-of-5 signers and willing to wait 14 days can rewrite the rules. The design raises the cost of capture; it does not make capture impossible.
 - **Polygon is a dependency.** If Polygon as an L2 ecosystem ceases to be credible, the migration is non-trivial (though tractable, given EVM portability).
 - **Legal feasibility of binding digital voting** under the São José Organic Law is not formally established. The first field pilot is consultative, not binding, pending an OAB-SC and municipal legal opinion.
+- **Political-incentive misalignment.** Incumbent officeholders who benefit from the opacity of the current process have a structural incentive to delay or derail adoption: a transparent, auditable tally removes a tool of political control. The mitigations — TCE-SC and the Public Prosecutor's Office as multisig signers and public endorsers, FECAM as a procurement channel, the cost-savings argument to the Finance Secretariat — reduce the attack surface of political resistance but do not eliminate it. The anchor sale requires a political ally inside the City Hall who benefits more from the accountability narrative than they lose from the transparency constraint. This is a sales risk, not a technical one.
+- **Municipal procurement timeline.** A first IT-services contract with a Brazilian municipality is governed by Lei 14.133/2021. A novel B2G platform typically requires a market survey, a technical-specification phase, and a competitive tender process of 3–12 months, depending on the contract value and modality. We are exploring the _Marco Legal das Startups_ (LC 182/2021) and public-interest partnership modalities, which allow accelerated onboarding for experimental public-technology services, but this remains a point-to-verify with the City Hall's legal team. If the procurement process slips past 2026-Q2, the Q3 field pilot slips with it.
 
 ---
 
