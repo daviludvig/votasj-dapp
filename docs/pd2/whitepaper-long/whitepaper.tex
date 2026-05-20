@@ -459,6 +459,18 @@ compromise is institutional, not cryptographic --- a credential-hash anomaly
 (e.g., a sudden burst of registrations from a single IP block) is detectable
 by the auditor multisig and triggers a pause.
 
+\textbf{Integration prerequisite.} Using gov.br as an OIDC provider requires
+the City Hall to sign a \emph{Termo de Coopera\c{c}\~ao T\'ecnica} with Serpro
+and register VotaSJ as a public-interest service via the acesso.gov.br
+self-service portal~\cite{govbrmanual}. The process takes 30--60 days and
+requires an ANPD-compatible data-processing agreement as an attachment. The
+registration must specify the minimum \texttt{govbr\_confianca} level
+required (we require \texttt{alto}, which mandates biometric or e-CPF
+confirmation); Serpro reviews and approves the level claim as part of the
+onboarding. This dependency is on the critical path of the Q3 pilot: the
+Termo must be initiated at least 90 days before the first voter-registration
+window opens.
+
 \section{Multisig Governance}
 \label{sec:governance}
 
@@ -599,6 +611,54 @@ portal banner; (3) diagnosis is off-chain; the cycle is closed and re-opened
 with new parameters via multisig + timelock, or allowed to expire and its
 result discarded with public, signed justification.
 
+\subsection{Kiosk security}
+\label{sec:kiosk-security}
+
+The assisted-kiosk channel introduces a distinct threat surface not present
+in the citizen-controlled-device flow.
+
+\noindent\begin{tabular}{p{0.18\textwidth} p{0.72\textwidth}}
+\toprule
+\textbf{Threat} & \textbf{Mitigation} \\
+\midrule
+Shoulder surfing &
+  Kiosk terminals use privacy screens (side-angle filter). The gov.br
+  authentication step is decoupled from vote selection: the citizen
+  authenticates on a private sub-screen, then the terminal transitions to
+  the proposal list. The final confirmation is a single tap visible only to
+  the voter. \\
+\midrule
+Attendant coercion &
+  Kiosk attendants see only whether a citizen has completed the session, not
+  which proposal they voted for. The vote step is rendered after the
+  attendant steps back, as documented in the kiosk-attendant handbook.
+  Attendants are municipal social-services employees bound by the municipal
+  employees' code of conduct. \\
+\midrule
+Session isolation &
+  Each session is single-use: the terminal clears LocalStorage, the ephemeral
+  wallet key, and session cookies on logout or after a 60-second idle timeout.
+  The ERC-4337~\cite{eip4337} smart-account is created fresh per session; no
+  private key persists on the terminal. \\
+\midrule
+Device compromise &
+  Kiosk terminals run a locked-down Chromium kiosk mode on MDM-enrolled
+  hardware. The kiosk application is hash-verified at boot; a tampered binary
+  blocks the session and alerts the on-call team. Network traffic from kiosk
+  IPs is monitored; anomalies (e.g., multiple distinct wallet addresses from
+  one terminal within one hour) trigger an alert. \\
+\bottomrule
+\end{tabular}
+
+\medskip
+Two residual limitations apply regardless of mitigations. First, individual
+coercion at a kiosk is as hard to prevent as coercion at home --- the
+system cannot distinguish a freely cast vote from a coerced one; the
+mitigation is institutional (public premises, staff oversight). Second, a
+compromised MDM infrastructure could affect all kiosk terminals
+simultaneously; that risk belongs to the City Hall's IT security team,
+not to the smart-contract threat model.
+
 \section{Privacy and LGPD Compliance}
 \label{sec:privacy}
 
@@ -643,11 +703,20 @@ zk-proof~\cite{semaphoredocs,semaphoregithub}:
         one-vote-per-citizen without linkability to the registry.
 \end{itemize}
 
-Benchmarks of comparable Semaphore-on-Polygon deployments suggest a per-vote
-zk-proof generation of \(\approx\)3--5\,s on a mid-range mobile device and an
-on-chain verification cost of \(\approx\)250k\,gas, still within the per-vote
-economic envelope. The zk migration is scheduled for the second annual
-cycle.
+Published benchmarks for Semaphore v4 (Groth16 over BN254) report a per-proof
+generation time of \(\approx\)3--5\,s on a mid-range Android device and an
+on-chain verification cost of \(\approx\)250k\,gas~\cite{semaphoredocs} ---
+within the per-vote economic envelope of
+Section~\ref{sec:gas}. We have not yet run a live Semaphore-on-Polygon
+integration test; those figures come from the protocol team's testnet
+benchmarks. A prototype integration test against Polygon Amoy is scoped for
+2026-Q4, after the field pilot, to validate the numbers against our specific
+contract topology before committing to the migration. Until that prototype
+runs, the zk expansion path carries execution risk: if proof generation
+exceeds \(\approx\)8\,s on the kiosk device profile, the assisted-kiosk UX
+will require rethinking (e.g., server-side proving with an explicit trust
+trade-off, or a different proving system). The zk migration is scheduled for
+the second annual cycle.
 
 \section{Scalability, Performance, and Infrastructure}
 \label{sec:scale}
@@ -662,6 +731,7 @@ implies a peak sustained load of \(\approx\)0.1\,TPS --- three orders of
 magnitude below the chain's capacity.
 
 \subsection{Gas-cost considerations}
+\label{sec:gas}
 
 \noindent\begin{tabular}{l r}
 \toprule
@@ -941,6 +1011,28 @@ What VotaSJ does \textbf{not} solve:
         Organic Law is not formally established. The first field pilot is
         consultative, not binding, pending an OAB-SC and municipal legal
         opinion.
+  \item \textbf{Political-incentive misalignment.} Incumbent officeholders
+        who benefit from the opacity of the current process have a structural
+        incentive to delay or derail adoption: a transparent, auditable tally
+        removes a tool of political control. TCE-SC and the Public
+        Prosecutor's Office as multisig signers, FECAM as a procurement
+        channel, and the cost-savings argument to the Finance Secretariat
+        reduce the attack surface of political resistance but do not eliminate
+        it. The anchor sale requires a political ally inside the City Hall who
+        benefits more from the accountability narrative than they lose from
+        the transparency constraint. This is a sales risk, not a technical
+        one.
+  \item \textbf{Municipal procurement timeline.} A first IT-services contract
+        with a Brazilian municipality is governed by Lei~14.133/2021
+        (\emph{Nova Lei de Licita\c{c}\~oes}). A novel B2G platform typically
+        requires a market survey, a technical-specification phase, and a
+        competitive tender of 3--12 months, depending on contract value and
+        modality. We are exploring the \emph{Marco Legal das Startups}
+        (LC~182/2021), which allows an accelerated \emph{contrato p\'ublico
+        de solu\c{c}\~ao inovadora} for technology-experimentation services,
+        but this remains a point-to-verify with the City Hall's legal team.
+        If the procurement process slips past 2026-Q2, the Q3 field pilot
+        slips with it.
 \end{itemize}
 
 \noindent A few constraints we treat as non-negotiable. They are listed
