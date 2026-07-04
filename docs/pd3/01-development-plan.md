@@ -1,6 +1,8 @@
 # PD3 Development Plan
 
-This is the phased plan from today to the PD3 submission. It is built around one acceptance test: **every vital step of the cycle is demonstrable live and verifiable by a third party**. If at any point the team is forced to choose between a feature and verifiability, verifiability wins.
+> **Status: PD3 was submitted at the Minimum/local-network scope** (see [02-gap-analysis.md](02-gap-analysis.md)). Phase A below is done — two contracts, 43 tests, 100% coverage, a reproducible demo script — and is what the pitch deck in this same folder (start at [05-pitch-deck-outline.md](05-pitch-deck-outline.md)) presents. Phases B through E describe the backend, frontend, and public-testnet work that was **not** built for PD3 and remains the roadmap. This document is kept as-is (rather than rewritten after the fact) so the team can resume Phase B without re-deriving the plan; treat every "Amoy", "frontend", or "backend" reference below as future work, not as something the PD3 submission claims to have.
+
+This is the phased plan from today to a full production-grade demo. It is built around one acceptance test: **every vital step of the cycle is demonstrable live and verifiable by a third party**. If at any point the team is forced to choose between a feature and verifiability, verifiability wins.
 
 ## 0. Goal restated
 
@@ -81,10 +83,10 @@ Each phase ends with a hard gate. We do not start the next phase until the gate 
 
 **Tasks:**
 
-- [ ] **Pitch deck finalized** following [05-pitch-deck-outline.md](05-pitch-deck-outline.md). Exported to PDF, committed at `docs/pd3/pitch-deck.pdf`.
-- [ ] **Video recorded** following [06-video-script.md](06-video-script.md). Three parts (canvas → white paper → MVP demo) totaling 10–15 minutes. Uploaded as **unlisted** to YouTube.
+- [ ] **Pitch deck finalized** following [05-pitch-deck-outline.md](05-pitch-deck-outline.md) and [06-slide-content.md](06-slide-content.md). Exported to PDF, committed at `docs/pd3/pitch-deck.pdf`.
+- [ ] **Video recorded** following [07-speaker-script.md](07-speaker-script.md) and [08-live-demo-script.md](08-live-demo-script.md). Three parts (canvas → white paper → MVP demo) totaling 10–15 minutes. Uploaded as **unlisted** to YouTube.
 - [ ] **Final repository sweep** — `npm run lint`, `npm test`, and a fresh `git clone` test from a different machine. The reviewer should be able to clone, install, and run the test suite without help from us.
-- [ ] **Submission package** — repository URL + YouTube link + brief cover email pointing the reviewer at [docs/pd3/03-demo-runbook.md](03-demo-runbook.md) so they can independently re-run the flows.
+- [ ] **Submission package** — repository URL + YouTube link + brief cover email pointing the reviewer at [03-demo-runbook.md](03-demo-runbook.md) so they can independently re-run the flows.
 
 **Gate E:** YouTube link works, repository is reviewer-clonable, the runbook can be executed against the Amoy deployment by someone outside the team.
 

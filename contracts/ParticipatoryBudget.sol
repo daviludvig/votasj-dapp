@@ -28,7 +28,7 @@ contract ParticipatoryBudget {
         uint256 winningProposalId;
     }
 
-    VoterRegistry public immutable registry;
+    VoterRegistry public immutable REGISTRY;
     address public admin;
 
     uint256 public currentCycleId;
@@ -49,7 +49,7 @@ contract ParticipatoryBudget {
     constructor(address registryAddress, address initialAdmin) {
         require(registryAddress != address(0), "Budget: registry is zero");
         require(initialAdmin != address(0), "Budget: admin is zero");
-        registry = VoterRegistry(registryAddress);
+        REGISTRY = VoterRegistry(registryAddress);
         admin = initialAdmin;
     }
 
@@ -80,7 +80,7 @@ contract ParticipatoryBudget {
         Cycle storage cycle = cycles[currentCycleId];
         require(cycle.status == CycleStatus.Open, "Budget: cycle not open");
         require(block.timestamp < cycle.closesAt, "Budget: cycle ended");
-        require(registry.isRegistered(msg.sender), "Budget: submitter not registered");
+        require(REGISTRY.isRegistered(msg.sender), "Budget: submitter not registered");
         require(bytes(ipfsCid).length > 0, "Budget: empty cid");
 
         cycle.proposalCount += 1;
@@ -101,7 +101,7 @@ contract ParticipatoryBudget {
         require(cycle.status == CycleStatus.Open, "Budget: cycle not open");
         require(block.timestamp >= cycle.opensAt, "Budget: cycle not started");
         require(block.timestamp < cycle.closesAt, "Budget: cycle ended");
-        require(registry.isRegistered(msg.sender), "Budget: voter not registered");
+        require(REGISTRY.isRegistered(msg.sender), "Budget: voter not registered");
         require(!hasVoted[currentCycleId][msg.sender], "Budget: already voted");
 
         Proposal storage proposal = proposals[currentCycleId][proposalId];

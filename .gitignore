@@ -2,10 +2,15 @@ node_modules/
 cache/
 artifacts/
 coverage/
-coverage.json
+/coverage.json
 typechain/
 typechain-types/
 .eslintcache
+reports/
+
+# Marp deck previews (regenerate with `npm run deck:build` / `npm run results:build`).
+# The final docs/pd3/pitch-deck.pdf submission artifact is NOT ignored — commit that one.
+docs/pd3/*.html
 
 .env
 .env.*

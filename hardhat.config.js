@@ -18,4 +18,12 @@ module.exports = {
       chainId: 80002,
     },
   },
+  gasReporter: {
+    enabled: true,
+    noColors: true,
+    outputFile: "reports/gas-report.txt",
+    forceConsoleOutput: true,
+    reportPureAndViewMethods: false,
+    excludeContracts: [],
+  },
 };

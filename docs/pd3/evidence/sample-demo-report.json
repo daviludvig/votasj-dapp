@@ -1,0 +1,161 @@
+{
+  "network": "hardhat",
+  "contracts": {
+    "voterRegistry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "participatoryBudget": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+  },
+  "generatedAt": "2026-07-04T18:47:23.169Z",
+  "steps": [
+    {
+      "step": 1,
+      "title": "Deploy VoterRegistry",
+      "narration": "admin = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "txHash": "0xf4d2b7d3d8c9ddb699c6c31c1d0c55ba6f493e4330927c64fe1eb5aab2c37b34"
+    },
+    {
+      "step": 2,
+      "title": "Deploy ParticipatoryBudget",
+      "narration": "registry = 0x5FbDB2315678afecb367f032d93F642f64180aa3, admin = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "txHash": "0x0b1517392bf94c402b01be9185bce63b6438e317d5daadc74e5c77ec893be466"
+    },
+    {
+      "step": 3,
+      "title": "Register voter \"ana\"",
+      "narration": "credentialHash = keccak256(\"govbr:ana\") — the chain never sees the underlying CPF.",
+      "txHash": "0x7b56303c6726403a97c5146707a379e99fab02876e22883c2c155b758764e11d",
+      "blockNumber": 3,
+      "gasUsed": "114988",
+      "event": "VoterRegistered(0x70997970C51812dc3A010C7d01b50e0d17dc79C8, 0x13ead81fff3d96a1ee027c045e05aaa505dec076f7391ee4772e8bad4ff778f4)"
+    },
+    {
+      "step": 4,
+      "title": "Register voter \"bruno\"",
+      "narration": "credentialHash = keccak256(\"govbr:bruno\") — the chain never sees the underlying CPF.",
+      "txHash": "0x50ab85794d503a5b5e58097985a0348483b53ffb98aab752a39d79d0b385fa84",
+      "blockNumber": 4,
+      "gasUsed": "97876",
+      "event": "VoterRegistered(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC, 0x78792ce9d83d223702f723f4a9cbc725378afc5187a1dab6540eb153dc7bfd3f)"
+    },
+    {
+      "step": 5,
+      "title": "Register voter \"carla\"",
+      "narration": "credentialHash = keccak256(\"govbr:carla\") — the chain never sees the underlying CPF.",
+      "txHash": "0x06713ee41496ee7d10a076a875586c2d11efd30d4e7e46c97540debd2fda3993",
+      "blockNumber": 5,
+      "gasUsed": "97888",
+      "event": "VoterRegistered(0x90F79bf6EB2c4f870365E785982E1f101E93b906, 0x14b1d4d0bc7d8f041da507ab972bc5331e0e2e1fb1cf81f25b3051a7d29925ca)"
+    },
+    {
+      "step": 6,
+      "title": "Guardrail: double registration",
+      "narration": "Registering \"ana\" a second time must be rejected.",
+      "ok": false,
+      "revertReason": "VoterRegistry: already registered"
+    },
+    {
+      "step": 7,
+      "title": "Open cycle #1",
+      "narration": "opensAt=1783190853, closesAt=1783191153 (a 5-minute window for this run)",
+      "txHash": "0x8c475d3a4d007c3df9cfc398181c9e348e1532ac4d93fab00c8c1908b1889e6b",
+      "blockNumber": 7,
+      "gasUsed": "122570",
+      "event": "CycleOpened(1, 1783190853, 1783191153, 535000000000000000000000)"
+    },
+    {
+      "step": 8,
+      "title": "Submit proposal — \"Reforma da Praça Central do Bairro Kobrasol\"",
+      "narration": "Submitted by ana. Content pinned at ipfs://bafybeigdemoprac1a2b3c4d5e6f7g8h9i0jklpraca (BRL 180.000).",
+      "txHash": "0xec268048bd1e2e9b45c21b7b6816ef78fc1dba76785c335b773fd8566d7c90b7",
+      "blockNumber": 9,
+      "gasUsed": "152094",
+      "event": "ProposalSubmitted(1, 1, 0x70997970C51812dc3A010C7d01b50e0d17dc79C8, ipfs://bafybeigdemoprac1a2b3c4d5e6f7g8h9i0jklpraca)"
+    },
+    {
+      "step": 9,
+      "title": "Submit proposal — \"Iluminação de LED na Rua das Palmeiras\"",
+      "narration": "Submitted by bruno. Content pinned at ipfs://bafybeigdemoiluminacao1a2b3c4d5e6f7g8h9i0jkl (BRL 95.000).",
+      "txHash": "0x67381a911186be917fd8ef5996b8510be804a6677d875b4eca1304ffa866324b",
+      "blockNumber": 10,
+      "gasUsed": "135006",
+      "event": "ProposalSubmitted(1, 2, 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC, ipfs://bafybeigdemoiluminacao1a2b3c4d5e6f7g8h9i0jkl)"
+    },
+    {
+      "step": 10,
+      "title": "Submit proposal — \"Reforma da UBS do Bairro Forquilhinha\"",
+      "narration": "Submitted by carla. Content pinned at ipfs://bafybeigdemoubs1a2b3c4d5e6f7g8h9i0jklforquilha (BRL 260.000).",
+      "txHash": "0xe6de0d0bc51b20309c628302800ab336d97cf8c29e7d3ce9e8268192302ec312",
+      "blockNumber": 11,
+      "gasUsed": "135030",
+      "event": "ProposalSubmitted(1, 3, 0x90F79bf6EB2c4f870365E785982E1f101E93b906, ipfs://bafybeigdemoubs1a2b3c4d5e6f7g8h9i0jklforquilha)"
+    },
+    {
+      "step": 11,
+      "title": "Guardrail: unregistered submitter",
+      "narration": "An address with no VoterRegistry entry must not be able to submit a proposal.",
+      "ok": false,
+      "revertReason": "Budget: submitter not registered"
+    },
+    {
+      "step": 12,
+      "title": "Vote — ana votes for the UBS renovation",
+      "narration": "",
+      "txHash": "0xb69082633577e04f17fdbac6a403583d8f59515964e61a4465d711e7eff02927",
+      "blockNumber": 13,
+      "gasUsed": "105085",
+      "event": "VoteCast(1, 3, 0x70997970C51812dc3A010C7d01b50e0d17dc79C8)"
+    },
+    {
+      "step": 13,
+      "title": "Vote — bruno votes for the UBS renovation",
+      "narration": "",
+      "txHash": "0xecfc661cd28aff6b4a884fcb7901e62609c8b4d921a65c7cbcc32f2b04282446",
+      "blockNumber": 14,
+      "gasUsed": "70885",
+      "event": "VoteCast(1, 3, 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC)"
+    },
+    {
+      "step": 14,
+      "title": "Vote — carla votes for the praça",
+      "narration": "",
+      "txHash": "0xd6df24577377cbc6389685f28a95278e72385993fa9bcdcf0dd13b5ea9e05c97",
+      "blockNumber": 15,
+      "gasUsed": "87985",
+      "event": "VoteCast(1, 1, 0x90F79bf6EB2c4f870365E785982E1f101E93b906)"
+    },
+    {
+      "step": 15,
+      "title": "Guardrail: double voting",
+      "narration": "ana already voted this cycle; a second vote from the same address must revert.",
+      "ok": false,
+      "revertReason": "Budget: already voted"
+    },
+    {
+      "step": 16,
+      "title": "Guardrail: unregistered voter",
+      "narration": "An address with no registry entry must not be able to cast a vote.",
+      "ok": false,
+      "revertReason": "Budget: voter not registered"
+    },
+    {
+      "step": 17,
+      "title": "Guardrail: early close",
+      "narration": "Closing before closesAt must be rejected — there is no way to cut a cycle short.",
+      "ok": false,
+      "revertReason": "Budget: cycle still running"
+    },
+    {
+      "step": 18,
+      "title": "Close cycle #1",
+      "narration": "Anyone can call this once closesAt has elapsed; the contract computes the winner on-chain.",
+      "txHash": "0x87cc2ecc17b67897c3e8ee89433eec83747cf74ad19c8b6849527462c26ae71c",
+      "blockNumber": 20,
+      "gasUsed": "64691",
+      "event": "CycleClosed(1, 3, 2)"
+    }
+  ],
+  "finalTally": {
+    "winningProposalId": "3",
+    "totalVotes": "3",
+    "totalVoters": "3"
+  }
+}

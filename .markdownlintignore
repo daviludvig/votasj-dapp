@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+
+# Marp presentations follow slide-deck conventions (H1 title + a bold
+# subtitle line, headings that read as full sentences) rather than the
+# heading-hierarchy and punctuation rules meant for linear documents.
+docs/pd3/06-slide-content.md
+docs/pd3/11-results-presentation.md

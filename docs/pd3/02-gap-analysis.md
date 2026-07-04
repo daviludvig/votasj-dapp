@@ -1,6 +1,6 @@
 # PD3 Gap Analysis — White-Paper Claims vs Repo Reality
 
-> **Chosen scope level for PD3:** _[Minimum / Target / Stretch]_ — the team writes the choice here on day 1.
+> **Chosen scope level for PD3: Minimum, local-network only.** The submitted PD3 deliverable is the on-chain layer (`VoterRegistry` + `ParticipatoryBudget`), proven by a 43-test Hardhat suite at 100% statement/branch/function/line coverage and a reproducible end-to-end script (`npm run demo`, see [03-demo-runbook.md](03-demo-runbook.md)). No frontend, no backend, no gov.br integration, and no public testnet deployment are part of this delivery. The pitch deck and video (start at [05-pitch-deck-outline.md](05-pitch-deck-outline.md)) present exactly this scope, honestly, as a working MVP with a clear roadmap — not as the full production architecture described in the white paper. Everything below Phase A in [01-development-plan.md](01-development-plan.md) (backend, frontend, Amoy deployment, `ExecutionTracker`) is the roadmap for after PD3, kept in this document so the team can pick it up without re-deriving the plan.
 
 This document inventories every claim the long white paper makes about the system, marks each one against the actual state of the repository at the time of writing, and assigns a PD3 priority. The priority labels are:
 

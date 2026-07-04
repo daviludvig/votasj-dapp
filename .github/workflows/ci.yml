@@ -12,8 +12,16 @@ concurrency:
 
 jobs:
   lint:
-    name: Lint
-    runs-on: ubuntu-latest
+    name: Lint (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both OSes on purpose: the npm scripts here previously broke silently
+        # on Windows (cmd.exe handles quoted glob patterns differently from
+        # bash) without failing or erroring — see package.json history. This
+        # matrix is what would have caught that automatically.
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,24 +37,42 @@ jobs:
         run: npm run lint:md
 
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: ["20", "22"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
       - name: Compile contracts
         run: npm run build
-      - name: Run tests
+      - name: Run tests (includes gas report; large-scale test uses its 500-voter default)
         run: npm test
+      - name: Re-run only the large-scale test at higher volume (1000 voters)
+        run: npx hardhat test test/LargeScaleCycle.test.js
+        env:
+          VOTASJ_SCALE_VOTERS: "1000"
+      - name: Upload gas report
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gas-report
+          path: reports/gas-report.txt
+          retention-days: 90
 
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,9 +82,69 @@ jobs:
       - run: npm ci
       - name: Run coverage
         run: npm run coverage
+      - name: Enforce coverage threshold (100%)
+        run: npm run coverage:check
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/
           retention-days: 14
+      - name: Generate coverage badge
+        run: node scripts/generate-coverage-badge.js
+      - name: Commit updated badge (main only)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add badges/coverage.json
+          if git diff --cached --quiet; then
+            echo "Badge unchanged, nothing to commit"
+          else
+            git commit -m "chore: update coverage badge"
+            git push
+          fi
+
+  metrics:
+    name: Contract metrics
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Compute structural metrics (LOC, complexity, bytecode size)
+        run: npm run metrics
+      - name: Upload metrics report
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-metrics
+          path: reports/contract-metrics.*
+          retention-days: 90
+
+  demo:
+    name: Demo cycle (evidence, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Run full end-to-end cycle and assert every guardrail
+        run: npm run demo
+      - name: Upload demo evidence report
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-cycle-report-${{ matrix.os }}
+          path: reports/
+          retention-days: 90

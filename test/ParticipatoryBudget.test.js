@@ -152,7 +152,9 @@ describe("ParticipatoryBudget", function () {
 
     it("rejects submission when no cycle has ever been opened", async function () {
       const fixture = await deploy();
-      await expect(fixture.budget.connect(fixture.alice).submitProposal("ipfs://X")).to.be.reverted;
+      await expect(
+        fixture.budget.connect(fixture.alice).submitProposal("ipfs://X")
+      ).to.be.revertedWith("Budget: cycle not open");
     });
 
     it("rejects submission after the cycle ended", async function () {
@@ -192,6 +194,17 @@ describe("ParticipatoryBudget", function () {
       );
     });
 
+    it("rejects voting before opensAt (proposals may land before voting starts)", async function () {
+      const { budget, alice } = await deploy();
+      const t = await now();
+      await budget.openCycle(t + 3600, t + 7200, 0);
+      await budget.connect(alice).submitProposal("ipfs://early");
+
+      await expect(budget.connect(alice).vote(1)).to.be.revertedWith(
+        "Budget: cycle not started"
+      );
+    });
+
     it("rejects double voting by the same wallet", async function () {
       const { budget, alice } = await cycleWithProposal();
       await budget.connect(alice).vote(1);
@@ -207,6 +220,20 @@ describe("ParticipatoryBudget", function () {
       const { budget, alice } = await cycleWithProposal();
       await advanceTo((await now()) + 4000);
       await expect(budget.connect(alice).vote(1)).to.be.revertedWith("Budget: cycle ended");
+    });
+
+    it("rejects voting when no cycle has ever been opened", async function () {
+      const { budget, alice } = await deploy();
+      await expect(budget.connect(alice).vote(1)).to.be.revertedWith("Budget: cycle not open");
+    });
+
+    it("rejects voting once the cycle has already been closed", async function () {
+      const { budget, alice } = await cycleWithProposal();
+      await budget.connect(alice).vote(1);
+      await advanceTo((await now()) + 4000);
+      await budget.closeCycle();
+
+      await expect(budget.connect(alice).vote(1)).to.be.revertedWith("Budget: cycle not open");
     });
   });
 

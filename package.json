@@ -5,22 +5,33 @@
   "description": "VotaSJ: blockchain-backed participatory budgeting for Sao Jose/SC (UFSC INE5458 2026/1)",
   "scripts": {
     "build": "hardhat compile",
+    "pretest": "node -e \"require('fs').mkdirSync('reports', { recursive: true })\"",
     "test": "hardhat test",
+    "precoverage": "node -e \"require('fs').mkdirSync('reports', { recursive: true })\"",
     "coverage": "hardhat coverage",
+    "coverage:check": "node scripts/check-coverage-threshold.js",
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "deploy:amoy": "hardhat run scripts/deploy.js --network amoy",
+    "demo": "hardhat run scripts/demo-cycle.js",
+    "demo:local": "hardhat run scripts/demo-cycle.js --network localhost",
+    "metrics": "hardhat compile && node scripts/contract-metrics.js",
     "lint": "npm run lint:sol && npm run lint:js && npm run lint:md",
-    "lint:sol": "solhint 'contracts/**/*.sol'",
+    "lint:sol": "solhint \"contracts/**/*.sol\"",
     "lint:js": "eslint .",
-    "lint:md": "markdownlint '**/*.md' --ignore node_modules --ignore coverage"
+    "lint:md": "markdownlint \"**/*.md\" --ignore node_modules --ignore coverage",
+    "verify": "npm run lint && npm test && npm run coverage && npm run coverage:check && npm run metrics && npm run demo",
+    "deck:build": "npx --yes @marp-team/marp-cli@latest docs/pd3/06-slide-content.md -o docs/pd3/pitch-deck.html",
+    "results:build": "npx --yes @marp-team/marp-cli@latest docs/pd3/11-results-presentation.md -o docs/pd3/results-presentation.html"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@solidity-parser/parser": "^0.14.5",
     "chai": "^4.5.0",
     "eslint": "^8.57.1",
     "ethers": "^6.13.0",
     "hardhat": "^2.22.0",
+    "hardhat-gas-reporter": "^1.0.10",
     "markdownlint-cli": "^0.48.0",
     "solhint": "^6.2.1"
   }
