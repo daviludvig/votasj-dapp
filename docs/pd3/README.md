@@ -27,7 +27,7 @@ PD3 is submitted at the **Minimum / local-network scope**: the on-chain layer (`
 | 4 | [04-deliverables-checklist.md](04-deliverables-checklist.md) | Pre-flight checklist on submission day, split into required-now vs roadmap items. |
 | 5 | [05-pitch-deck-outline.md](05-pitch-deck-outline.md) | The 10-slide outline (with a 5-slide collapse). Start here to assemble the deck. |
 | 6 | [06-slide-content.md](06-slide-content.md) | The pitch deck itself, as a renderable **Marp** presentation — open it in VS Code with the Marp extension, or export it (see "Rendering the Marp decks" below). |
-| 7 | [07-speaker-script.md](07-speaker-script.md) | Minute-by-minute spoken track for the 10–15 min video. |
+| 7 | [07-speaker-script.md](07-speaker-script.md) | The 10–15 min video split into 4 big parts, one per team member, following the slide order. |
 | 8 | [08-live-demo-script.md](08-live-demo-script.md) | Exact terminal commands and narration for the on-camera `npm run demo` segment. |
 | 9 | [09-qa-prep.md](09-qa-prep.md) | Anticipated questions — including the white-paper-vs-reality gap — with prepared, honest answers. |
 | 10 | [10-business-metrics.md](10-business-metrics.md) | LTV/CAC, payback derivations, and a check of the white paper's "payback is one cycle" claim against its own numbers. |
@@ -71,7 +71,7 @@ docs/pd3/
   04-deliverables-checklist.md   final-week checklist
   05-pitch-deck-outline.md       10-slide outline (+ 5-slide collapse)
   06-slide-content.md            the pitch deck — renderable Marp presentation
-  07-speaker-script.md           minute-by-minute video script
+  07-speaker-script.md           video script, 4 parts (one per team member)
   08-live-demo-script.md         terminal run-of-show for the live demo segment
   09-qa-prep.md                  anticipated questions with prepared answers
   10-business-metrics.md         LTV/CAC, payback derivations

@@ -1,6 +1,6 @@
 # Live Demo Script — Terminal Run-of-Show
 
-The technical companion to Part 3 of [07-speaker-script.md](07-speaker-script.md). This is what Pedro actually types and what appears on screen, mapped to what Davi says. The underlying flows and their verification are specified in [03-demo-runbook.md](03-demo-runbook.md); this document is the recording-day checklist and cue sheet.
+The technical companion to Part 3 of [07-speaker-script.md](07-speaker-script.md) — Arthur's part. This is what Arthur types and says, alone, for the entire live-demo segment. The underlying flows and their verification are specified in [03-demo-runbook.md](03-demo-runbook.md); this document is the recording-day checklist and cue sheet.
 
 ## Before recording
 
@@ -50,7 +50,7 @@ Point out: "This file just got written, with every transaction hash and gas numb
 | Symptom | What happened | What to do on camera |
 | ------- | -------------- | --------------------- |
 | `npm run demo` throws a guard-rail assertion error | A real regression — an illegal action didn't revert as expected, or reverted with the wrong reason | Do not paper over it. Say so: "this caught something — that is exactly what this script is for." Stop the take, fix the underlying issue, re-run `npm test` to confirm, then re-record this segment only. |
-| Terminal window resizes or font is unreadable mid-recording | Recording setup issue, not a code issue | Cut and restart just this segment — the three-segment structure (see speaker script) means only this file's part needs a retake. |
+| Terminal window resizes or font is unreadable mid-recording | Recording setup issue, not a code issue | Cut and restart just this part — the 4-part structure (see speaker script) means only Arthur's part needs a retake, not the whole video. |
 | A Node version warning appears at startup | Hardhat's officially supported version is Node 20 LTS; newer versions still work | Ignore it or mention in one sentence that it's a compatibility notice, not a failure — the run still completes. |
 | Someone asks live why hashes differ from a previous take | Expected — each run spins a fresh in-memory chain | Say so plainly: "the structure and the guarantees are identical every run; the specific hashes are new because this is a live chain, not a recording." |
 

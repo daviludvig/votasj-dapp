@@ -52,7 +52,7 @@ Use this checklist in the final week. Nothing here is creative work — it is th
 
 ## Video (required)
 
-- [ ] Recorded in three independent segments (canvas + white paper, MVP demo, wrap) so any one can be re-shot — see [07-speaker-script.md](07-speaker-script.md).
+- [ ] Recorded as 4 independent parts, one per team member (Davi, Lucas, Arthur, Pedro), so any one can be re-shot without redoing the others — see [07-speaker-script.md](07-speaker-script.md).
 - [ ] Total runtime between 10:00 and 15:00.
 - [ ] Every team member appears and speaks for at least 1 minute.
 - [ ] The demo segment runs `npm run demo` live and follows [08-live-demo-script.md](08-live-demo-script.md) and [03-demo-runbook.md](03-demo-runbook.md).

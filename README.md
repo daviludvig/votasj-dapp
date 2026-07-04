@@ -103,7 +103,7 @@ npm install
 
 Identical on Windows (PowerShell or Git Bash) and Linux/macOS. No keys or environment variables are required at this point — installation is fully offline after the initial `npm install`.
 
-**Shortcut:** `npm run verify` runs everything below in one go — lint, tests (with the gas report), coverage, structural metrics, and the end-to-end demo — and exits non-zero if anything fails.
+**Shortcut — the most thorough single command in this repo:** `npm run verify` runs everything below in one go — lint, tests (with the gas report), coverage, a hard 100%-coverage gate (`coverage:check`, fails the command if any category drops), structural metrics, and the end-to-end demo — and exits non-zero at the first thing that fails.
 
 ```bash
 # Linux / macOS / Git Bash
@@ -123,7 +123,19 @@ npm run coverage  # same suite under istanbul — 100% statements/branches/funct
 npm run lint      # solhint + eslint + markdownlint
 ```
 
-One of those 43 is [`test/LargeScaleCycle.test.js`](test/LargeScaleCycle.test.js): it generates **500 independent wallets** (not reused signers), registers all of them, runs 6 proposals, casts 500 votes with a deliberately uneven split, and cross-checks the contract's tally against an independently tracked count in JavaScript — for every proposal, not just the winner. It finishes in a few seconds; push it further with `VOTASJ_SCALE_VOTERS=2000 npm test` (~16s, gas per vote stays flat either way).
+One of those 43 is [`test/LargeScaleCycle.test.js`](test/LargeScaleCycle.test.js): it generates **500 independent wallets** (not reused signers), registers all of them, runs 6 proposals, casts 500 votes with a deliberately uneven split, and cross-checks the contract's tally against an independently tracked count in JavaScript — for every proposal, not just the winner. It finishes in a few seconds; push it further (this is the most thorough single test in the suite) with:
+
+```bash
+# Linux / macOS / Git Bash
+VOTASJ_SCALE_VOTERS=2000 npm test
+```
+
+```powershell
+# Windows PowerShell
+$env:VOTASJ_SCALE_VOTERS = "2000"; npm test
+```
+
+~16s at 2,000 voters instead of ~5s at the default 500 — gas per vote stays flat either way.
 
 `npm test` also prints a gas-cost table for every contract method (min/max/avg gas and % of the block gas limit for each deployment), written to `reports/gas-report.txt`. The same checks run on every push and pull request via GitHub Actions — see [.github/workflows/ci.yml](.github/workflows/ci.yml). `lint` and `test` run on a matrix of **Ubuntu and Windows** (the `test` job also across **Node 20 and 22**), so a Windows-only or Node-version-only regression fails the build instead of surfacing only on someone's laptop. The `coverage` job fails the build if any of statements/branches/functions/lines drops below 100% — coverage is a gate here, not just a number in a badge.
 

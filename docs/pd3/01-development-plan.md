@@ -84,7 +84,7 @@ Each phase ends with a hard gate. We do not start the next phase until the gate 
 **Tasks:**
 
 - [ ] **Pitch deck finalized** following [05-pitch-deck-outline.md](05-pitch-deck-outline.md) and [06-slide-content.md](06-slide-content.md). Exported to PDF, committed at `docs/pd3/pitch-deck.pdf`.
-- [ ] **Video recorded** following [07-speaker-script.md](07-speaker-script.md) and [08-live-demo-script.md](08-live-demo-script.md). Three parts (canvas → white paper → MVP demo) totaling 10–15 minutes. Uploaded as **unlisted** to YouTube.
+- [ ] **Video recorded** following [07-speaker-script.md](07-speaker-script.md) and [08-live-demo-script.md](08-live-demo-script.md). Four parts, one per team member, following the slide order, totaling 10–15 minutes. Uploaded as **unlisted** to YouTube.
 - [ ] **Final repository sweep** — `npm run lint`, `npm test`, and a fresh `git clone` test from a different machine. The reviewer should be able to clone, install, and run the test suite without help from us.
 - [ ] **Submission package** — repository URL + YouTube link + brief cover email pointing the reviewer at [03-demo-runbook.md](03-demo-runbook.md) so they can independently re-run the flows.
 
