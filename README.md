@@ -3,24 +3,21 @@
 [![CI](https://github.com/daviludvig/votasj-dapp/actions/workflows/ci.yml/badge.svg)](https://github.com/daviludvig/votasj-dapp/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/daviludvig/votasj-dapp/main/badges/coverage.json)](https://github.com/daviludvig/votasj-dapp/actions/workflows/ci.yml)
 [![Solidity](https://img.shields.io/badge/solidity-0.8.24-363636?logo=solidity)](contracts/)
+[![Hardhat](https://img.shields.io/badge/hardhat-2.22-f7dc00?logo=ethereum&logoColor=black)](hardhat.config.js)
+[![Network](https://img.shields.io/badge/network-Polygon%20Amoy-8247E5?logo=polygon&logoColor=white)](https://amoy.polygonscan.com/)
+[![Node](https://img.shields.io/badge/node-20%20LTS-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 
-Course **INE5458 — Blockchain and Cryptocurrency Technologies** — UFSC 2026/1
+Final project for **INE5458 — Blockchain and Cryptocurrency Technologies** — UFSC 2026/1
 
 A decentralized voting platform for the São José/SC participatory budget. Every stage of the cycle (voter registration, proposal submission, voting, tallying) is recorded on a public blockchain (Polygon PoS), removing the central trusted authority and enabling open auditing by any citizen.
 
 ## Course Deliverables
 
-| PD | Weight | Artifact | Due | Status |
-| -- | ------ | -------- | --- | ------ |
-| PD1 | 80% Business Canvas + 20% Blockchain Canvas | [docs/pd1/business-canvas.md](docs/pd1/business-canvas.md), [docs/pd1/blockchain-canvas.md](docs/pd1/blockchain-canvas.md) | 2026-04-29 | drafted |
-| PD2 | Long white paper (≥ 8 pages, technical) + Short white paper (≤ 2 pages, business/user) | [docs/pd2/whitepaper-long/](docs/pd2/whitepaper-long/), [docs/pd2/whitepaper-short/](docs/pd2/whitepaper-short/) | 2026-05-20 | drafted |
-| PD3 | Pitch deck (5 or 10 slides) + 10–15 min team video + MVP demo, uploaded as unlisted YouTube link | [docs/pd3/](docs/pd3/) (dev plan, gap analysis, demo runbook, and the pitch deck itself) | TBD | in progress |
-
-### What each PD expects (derived from the course slides in [sources/](sources/))
-
-- **PD1 — Canvases.** Business Model Canvas (Osterwalder, 9 boxes) graded on completeness (0.3/box) and cross-block correlation (0.8/box); Blockchain Canvas (Sajida Zouarhi template: Problem, Solution, Entities, Divergence, Motivation, Network Peers, Transactions, Data, Type of Processing, Value, Network Dynamics, Points to Verify) graded on completeness only.
-- **PD2 — Two white papers.** A _long_ one that is technically focused (≥ 8 pages) and must convince a reader of the project's technical feasibility and innovation; a _short_ one (≤ 2 pages) that is business/user focused and must convince both an investor and a user. The canvases from PD1 feed directly into these documents.
-- **PD3 — Pitch + MVP.** A pitch deck (5-slide or 10-slide strategy from the course material) and a 10–15 minute recorded video of the full team pitching, ending in a live demo of the MVP (this repository). Uploaded as an unlisted YouTube video; the link plus the source code is the final deliverable.
+| PD | Artifact | Status |
+| -- | -------- | ------ |
+| PD1 — Business Canvas + Blockchain Canvas | [docs/pd1/](docs/pd1/) | completed |
+| PD2 — Long white paper + Short white paper | [docs/pd2/](docs/pd2/) | completed |
+| PD3 — Pitch deck + team video + MVP demo | [docs/pd3/](docs/pd3/) | completed |
 
 ## Repository Layout
 
@@ -259,10 +256,10 @@ This sends two real transactions to Amoy and prints the deployed addresses. They
 
 All changes land on `main` via pull request from a feature branch — no direct pushes. Commit conventions, branch naming, and how to apply GitHub branch-protection rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## MVP scope (PD1)
+## Contract scope
 
-- Single admin (City Hall) — the 3-of-5 multisig arrives in PD2.
-- Plaintext voting (transparent) — zk-SNARK vote privacy arrives in PD2.
-- Simple-majority tally — alternative schemes (quadratic, per-region) arrive in PD3.
+- Single admin (City Hall) controls voter registration and cycle management.
+- Plaintext voting — all votes and proposals are transparent and auditable on-chain.
+- Simple-majority tally — winning proposal determined by raw vote count per cycle.
 
-These simplifications are intentional for the first delivery; the rationale and evolution roadmap are documented in [docs/pd1/blockchain-canvas.md](docs/pd1/blockchain-canvas.md) under _Points to verify_.
+Design rationale and trade-offs are documented in [docs/pd1/blockchain-canvas.md](docs/pd1/blockchain-canvas.md).
